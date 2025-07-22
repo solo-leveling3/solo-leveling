@@ -1,5 +1,5 @@
 import SwipeableCard from '@/components/SwipeableCard';
-import { dummyCards } from '@/constants/dummy';
+import { useAppContext } from '@/contexts/AppContext';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
@@ -7,13 +7,23 @@ const NEWSAPI_KEY = '7bc2ad6714d940b6830421fb312978c3'; // <-- Replace with your
 const GNEWS_KEY = '862e6ae6561cf46301ff6c8f64ff5419';     // <-- Replace with your GNews key
 const GEMINI_API_KEY = 'AIzaSyAtXAm3o30_yx8gHnfr66TWZVvVAgjhmGA';
 
-async function generateGeminiSummary(title: string, summary: string) {
-  const prompt = `You are an expert tech/AI news explainer. Given this news article:
-Title: ${title}
-Summary: ${summary}
+// Helper to translate text using Google Translate API (free endpoint)
+async function translateText(text: string, targetLang: string): Promise<string> {
+  if (!text || targetLang === 'en') return text;
+  try {
+    const res = await fetch(
+      `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(text)}`
+    );
+    const data = await res.json();
+    return data[0]?.map((t: any) => t[0]).join('') || text;
+  } catch {
+    return text;
+  }
+}
 
-1. Why does this news matter for tech/AI professionals? (2-3 sentences)
-2. How can someone upskill or take action based on this news? (1-2 sentences)`;
+// Always generate summary in English, then translate if needed
+async function generateGeminiSummary(title: string, summary: string): Promise<{ why: string, upskill: string }> {
+  const prompt = `You are an expert technology and AI news explainer. Given this news article:\nTitle: ${title}\nSummary: ${summary}\n\nPlease answer the following:\n1. Why does this news matter for tech/AI professionals? (2-3 sentences)\n2. How can someone upskill or take action based on this news? (1-2 sentences)\n\nFormat your response as:\n1. <why it matters>\n2. <how to upskill>\n`;
   const res = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=' + GEMINI_API_KEY, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -22,18 +32,14 @@ Summary: ${summary}
     }),
   });
   const data = await res.json();
-  // Parse Gemini response
   let why = '', upskill = '';
   try {
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-    // Try to split by numbered list
-    const match = text.match(/1\.[\s\S]*?2\./);
-    if (match) {
-      const [whyPart, upskillPart] = text.split('2.');
-      why = whyPart.replace(/^1\./, '').trim();
-      upskill = upskillPart?.trim() || '';
-    } else {
-      // fallback: try to split by newlines
+    const whyMatch = text.match(/1\.(.*?)(?:2\.|$)/s);
+    const upskillMatch = text.match(/2\.(.*)/s);
+    why = whyMatch ? whyMatch[1].trim() : '';
+    upskill = upskillMatch ? upskillMatch[1].trim() : '';
+    if (!why && !upskill) {
       const [whyPart, upskillPart] = text.split(/\n\n|\n/);
       why = whyPart?.trim() || '';
       upskill = upskillPart?.trim() || '';
@@ -46,6 +52,7 @@ Summary: ${summary}
 }
 
 export default function FeedScreen() {
+  const { language } = useAppContext();
   const [articles, setArticles] = useState<any[]>([]);
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -59,7 +66,7 @@ export default function FeedScreen() {
       let newsapiArticles = [];
       let gnewsArticles = [];
       try {
-        // NewsAPI fetch
+        // Always fetch in English
         const newsapiRes = await fetch(
           `https://newsapi.org/v2/everything?q=technology%20OR%20AI%20OR%20artificial%20intelligence%20OR%20machine%20learning&language=en&pageSize=50&sortBy=publishedAt&apiKey=${NEWSAPI_KEY}`
         );
@@ -75,11 +82,11 @@ export default function FeedScreen() {
             image: a.urlToImage,
           }));
         }
-      } catch (e) {
+      } catch {
         setError('Failed to fetch from NewsAPI');
       }
       try {
-        // GNews fetch
+        // Always fetch in English
         const gnewsRes = await fetch(
           `https://gnews.io/api/v4/search?q=technology%20OR%20AI%20OR%20artificial%20intelligence%20OR%20machine%20learning&lang=en&max=50&token=${GNEWS_KEY}`
         );
@@ -95,45 +102,63 @@ export default function FeedScreen() {
             image: a.image,
           }));
         }
-      } catch (e) {
+      } catch {
         setError((prev) => prev ? prev + ' & GNews' : 'Failed to fetch from GNews');
       }
       const merged = [...newsapiArticles, ...gnewsArticles];
       // Filter for tech/AI news only (title or summary must contain keywords)
-      const techKeywords = /\b(tech|ai|artificial intelligence|machine learning|robot|software|hardware|data|cloud|computing|programming|developer|engineer|cyber|blockchain|crypto|automation|gpt|openai|google|microsoft|apple|amazon|semiconductor|chip|quantum|neural|startup|internet|web|mobile|app|application|virtual|augmented|iot|5g|6g|network|security|privacy|algorithm|deep learning|nlp|vision|autonomous|self-driving|drone|robotics|big data|analytics|cloud|saas|paas|infrastructure|devops|coding|python|javascript|react|node|tensorflow|pytorch|ml|dl|nlp|lms|llm|generative|gemini|bard|chatgpt|copilot|ai assistant|ai tool|ai model|ai chip|ai hardware|ai software|ai research|ai ethics|ai safety|ai regulation|ai policy|ai news|ai update|ai trend|ai startup|ai company|ai product|ai service|ai platform|ai solution|ai application|ai system|ai technology|ai innovation|ai breakthrough|ai discovery|ai development|ai deployment|ai adoption|ai integration|ai implementation|ai usage|ai impact|ai benefit|ai risk|ai challenge|ai opportunity|ai future|ai vision|ai mission|ai goal|ai strategy|ai roadmap|ai plan|ai project|ai initiative|ai partnership|ai collaboration|ai investment|ai funding|ai acquisition|ai merger|ai IPO|ai stock|ai share|ai market|ai industry|ai sector|ai field|ai domain|ai area|ai discipline|ai science|ai engineering|ai design|ai architecture|ai framework|ai library|ai toolkit|ai toolchain|ai pipeline|ai workflow|ai process|ai method|ai technique|ai approach|ai algorithm|ai model|ai dataset|ai benchmark|ai evaluation|ai metric|ai score|ai result|ai finding|ai insight|ai analysis|ai report|ai review|ai summary|ai overview|ai survey|ai tutorial|ai guide|ai course|ai training|ai education|ai learning|ai teaching|ai mentoring|ai coaching|ai consulting|ai advising|ai supporting|ai enabling|ai empowering|ai enhancing|ai augmenting|ai automating|ai optimizing|ai improving|ai advancing|ai evolving|ai transforming|ai revolutionizing|ai disrupting|ai changing|ai shaping|ai driving|ai leading|ai powering|ai fueling|ai boosting|ai accelerating|ai scaling|ai growing|ai expanding|ai spreading|ai increasing|ai rising|ai surging|ai booming|ai exploding|ai skyrocketing|ai dominating|ai conquering|ai winning|ai succeeding|ai thriving|ai flourishing|ai prospering|ai excelling|ai outperforming|ai surpassing|ai exceeding|ai outpacing|ai outstripping|ai overtaking|ai outshining|ai outclassing|ai outsmarting|ai outthinking|ai outlearning|ai outworking|ai outproducing|ai outdelivering|ai outserving|ai outcompeting|ai outinnovating|ai outdisrupting|ai outtransforming|ai outrevolutionizing|ai outchanging|ai outshaping|ai outdriving|ai outleading|ai outpowering|ai outfueling|ai outboosting|ai outaccelerating|ai outscaling|ai outgrowing|ai outexpanding|ai outspreading|ai outincreasing|ai outrising|ai outsurging|ai outbooming|ai outexploding|ai outskyrocketing|ai outdominating|ai outconquering|ai outwinning|ai outsucceeding|ai outthriving|ai outflourishing|ai outprospering|ai outexcelling|ai outoutperforming|ai outsurpassing|ai outexceeding|ai outoutpacing|ai outoutstripping|ai outovertaking|ai outoutshining|ai outoutclassing|ai outoutsmarting|ai outoutthinking|ai outoutlearning|ai outoutworking|ai outoutproducing|ai outoutdelivering|ai outoutserving|ai outoutcompeting|ai outoutinnovating|ai outoutdisrupting|ai outouttransforming|ai outoutrevolutionizing|ai outoutchanging|ai outoutshaping|ai outoutdriving|ai outoutleading|ai outoutpowering|ai outoutfueling|ai outoutboosting|ai outoutaccelerating|ai outoutscaling|ai outoutgrowing|ai outoutexpanding|ai outoutspreading|ai outoutincreasing|ai outoutrising|ai outoutsurging|ai outoutbooming|ai outoutexploding|ai outoutskyrocketing|ai outoutdominating|ai outoutconquering|ai outoutwinning|ai outoutsucceeding|ai outoutthriving|ai outoutflourishing|ai outoutprospering|ai outoutexcelling)\b/i;
+      const techKeywords = /\b(tech|ai|artificial intelligence|machine learning|robot|software|hardware|data|cloud|computing|programming|developer|engineer|cyber|blockchain|crypto|automation|gpt|openai|google|microsoft|apple|amazon|chip|quantum|startup|internet|web|mobile|app|virtual|iot|network|security|algorithm|deep|vision|autonomous|drone|analytics|saas|devops|coding|python|javascript|react|tensorflow|pytorch|gemini|chatgpt|copilot)\b/i;
       const filtered = merged.filter(
         (a) => techKeywords.test((a.title || '') + ' ' + (a.summary || ''))
       );
-      // Gemini summarization
-      let summarized: any[] = filtered;
+      // Gemini summarization and translation
+      let summarized: any[] = [];
       if (filtered.length > 0) {
         setLoading(true);
         summarized = await Promise.all(
           filtered.map(async (article) => {
             try {
-              const { why, upskill } = await generateGeminiSummary(article.title, article.summary);
-              return {
-                ...article,
-                why: why || 'This news is important for tech/AI professionals.',
-                upskill: upskill || 'Stay updated and explore related learning resources.',
-              };
+              // Only call Gemini if title or summary is not empty
+              if ((article.title && article.title.trim()) || (article.summary && article.summary.trim())) {
+                const { why, upskill } = await generateGeminiSummary(article.title, article.summary);
+                // Translate all fields if needed
+                const [titleT, summaryT, whyT, upskillT] = await Promise.all([
+                  translateText(article.title, language),
+                  translateText(article.summary, language),
+                  translateText(why, language),
+                  translateText(upskill, language),
+                ]);
+                return {
+                  ...article,
+                  title: titleT,
+                  summary: summaryT,
+                  why: whyT || '(No summary generated by Gemini)',
+                  upskill: upskillT || '(No upskill advice generated by Gemini)',
+                };
+              } else {
+                return {
+                  ...article,
+                  why: '(No title/summary)',
+                  upskill: '(No title/summary)',
+                };
+              }
             } catch {
               return {
                 ...article,
-                why: 'This news is important for tech/AI professionals.',
-                upskill: 'Stay updated and explore related learning resources.',
+                why: '(Gemini API error)',
+                upskill: '(Gemini API error)',
               };
             }
           })
         );
       }
-      setArticles(summarized.length > 0 ? summarized : dummyCards);
+      setArticles(summarized);
       setLoading(false);
     }
     fetchNews();
     interval = setInterval(fetchNews, 60 * 60 * 1000); // Refresh every 1 hour
     return () => clearInterval(interval);
-  }, []);
+  }, [language]);
 
   const handleSwipeUp = () => {
     if (index < articles.length - 1) setIndex(index + 1);
@@ -149,7 +174,21 @@ export default function FeedScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.centered}><ActivityIndicator size="large" color="#007bff" /><Text>Loading news...</Text></View>
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color="#007bff" />
+          <Text>Loading news...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (error) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centered}>
+          <Text style={styles.errorText}>Error: {error}</Text>
+          <Text style={styles.errorSubText}>Please check your internet connection and try again.</Text>
+        </View>
       </SafeAreaView>
     );
   }
@@ -157,7 +196,9 @@ export default function FeedScreen() {
   if (!currentCard) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.centered}><Text>No news articles found.</Text></View>
+        <View style={styles.centered}>
+          <Text>No news articles found.</Text>
+        </View>
       </SafeAreaView>
     );
   }
@@ -202,5 +243,16 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  errorText: {
+    fontSize: 18,
+    color: '#ff0000',
+    textAlign: 'center',
+    marginBottom: 10,
+  },
+  errorSubText: {
+    fontSize: 14,
+    color: '#666',
+    textAlign: 'center',
   },
 });
