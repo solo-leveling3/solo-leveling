@@ -1,4 +1,5 @@
 import { MaterialIcons } from '@expo/vector-icons';
+import React, { useState } from 'react';
 import { Dimensions, Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 
 const { width } = Dimensions.get('window');
@@ -32,16 +33,36 @@ export default function NewsCard({
   onLike,
   onDislike,
 }: NewsCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const shouldTruncate = summary.length > 150;
+  const displaySummary = shouldTruncate && !isExpanded 
+    ? summary.substring(0, 150) + "..." 
+    : summary;
+
   return (
     <View style={styles.card}>
       {image && <Image source={{ uri: image }} style={styles.headerImage} />}
       <View style={styles.content}>
         <Text style={styles.title}>{title}</Text>
 
-        <View style={styles.section}>
-          <Text style={styles.heading}>📌 Summary</Text>
-          <Text style={styles.text}>{summary}</Text>
-        </View>
+        <Pressable style={styles.section} onPress={() => shouldTruncate && setIsExpanded(!isExpanded)}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.heading}>📌 Summary</Text>
+            {shouldTruncate && (
+              <MaterialIcons 
+                name={isExpanded ? 'expand-less' : 'expand-more'} 
+                size={20} 
+                color="#007bff" 
+              />
+            )}
+          </View>
+          <Text style={styles.text}>{displaySummary}</Text>
+          {shouldTruncate && (
+            <Text style={styles.expandText}>
+              {isExpanded ? 'Tap to collapse' : 'Tap to read more'}
+            </Text>
+          )}
+        </Pressable>
 
         <View style={styles.section}>
           <Text style={styles.heading}>💡 Why It Matters</Text>
@@ -56,7 +77,7 @@ export default function NewsCard({
         <View style={styles.buttonRow}>
           {sourceUrl && (
             <Pressable style={styles.button} onPress={() => Linking.openURL(sourceUrl)}>
-              <Text style={styles.buttonText}>🔗 Learn More</Text>
+              <Text style={styles.buttonText}>🔗 Read This Article</Text>
             </Pressable>
           )}
           <View style={{ flex: 1 }} />
@@ -116,16 +137,28 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 16,
   },
+  sectionHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 6,
+  },
   heading: {
     fontSize: 16,
     fontWeight: '700',
     color: '#333',
-    marginBottom: 6,
   },
   text: {
     fontSize: 15,
     color: '#444',
     lineHeight: 22,
+  },
+  expandText: {
+    fontSize: 12,
+    color: '#007bff',
+    fontStyle: 'italic',
+    marginTop: 4,
+    textAlign: 'center',
   },
   buttonRow: {
     flexDirection: 'row',

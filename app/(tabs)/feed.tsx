@@ -52,7 +52,7 @@ async function generateGeminiSummary(title: string, summary: string): Promise<{ 
 }
 
 export default function FeedScreen() {
-  const { language } = useAppContext();
+  const { language, saveArticle, removeSavedArticle, isArticleSaved } = useAppContext();
   const [articles, setArticles] = useState<any[]>([]);
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -171,6 +171,37 @@ export default function FeedScreen() {
   const currentCard = articles[index];
   const nextCard = articles[index + 1];
 
+  // Handle save/unsave functionality
+  const handleToggleSave = (article: any) => {
+    if (isArticleSaved(article.id)) {
+      removeSavedArticle(article.id);
+    } else {
+      saveArticle({
+        id: article.id,
+        title: article.title,
+        summary: article.summary,
+        why: article.why,
+        upskill: article.upskill,
+        sourceUrl: article.sourceUrl,
+        image: article.image,
+        savedAt: Date.now()
+      });
+    }
+  };
+
+  // Add save functionality to current card
+  const currentCardWithSave = currentCard ? {
+    ...currentCard,
+    isSaved: isArticleSaved(currentCard.id),
+    onToggleSave: () => handleToggleSave(currentCard)
+  } : null;
+
+  const nextCardWithSave = nextCard ? {
+    ...nextCard,
+    isSaved: isArticleSaved(nextCard.id),
+    onToggleSave: () => handleToggleSave(nextCard)
+  } : null;
+
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
@@ -193,7 +224,7 @@ export default function FeedScreen() {
     );
   }
 
-  if (!currentCard) {
+  if (!currentCardWithSave) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
@@ -206,13 +237,13 @@ export default function FeedScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.stackContainer}>
-        {nextCard && (
+        {nextCardWithSave && (
           <View style={styles.nextCardWrapper} pointerEvents="none">
-            <SwipeableCard card={nextCard} onSwipeUp={() => {}} onSwipeDown={() => {}} />
+            <SwipeableCard card={nextCardWithSave} onSwipeUp={() => {}} onSwipeDown={() => {}} />
           </View>
         )}
-        {currentCard && (
-          <SwipeableCard card={currentCard} onSwipeUp={handleSwipeUp} onSwipeDown={handleSwipeDown} />
+        {currentCardWithSave && (
+          <SwipeableCard card={currentCardWithSave} onSwipeUp={handleSwipeUp} onSwipeDown={handleSwipeDown} />
         )}
       </View>
     </SafeAreaView>
