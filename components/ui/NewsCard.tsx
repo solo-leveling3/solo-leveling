@@ -11,6 +11,7 @@ interface NewsCardProps {
   upskill: string;
   sourceUrl?: string;
   image?: string;
+  youtube?: { url: string; title?: string }; // ✅ Now treated as object
   isSaved?: boolean;
   onToggleSave?: () => void;
   likeCount?: number;
@@ -24,6 +25,7 @@ export default function NewsCard({
   summary,
   why,
   upskill,
+  youtube,
   sourceUrl,
   image,
   isSaved,
@@ -33,11 +35,43 @@ export default function NewsCard({
   onLike,
   onDislike,
 }: NewsCardProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const shouldTruncate = summary.length > 180;
-  const displaySummary = shouldTruncate && !isExpanded
-    ? summary.substring(0, 180) + '...'
-    : summary;
+  const displaySummary = summary.length > 180 ? summary.substring(0, 180) + '...' : summary;
+
+  // Local state for like/dislike
+  const [localLike, setLocalLike] = useState(false);
+  const [localDislike, setLocalDislike] = useState(false);
+  const [likes, setLikes] = useState(likeCount);
+  const [dislikes, setDislikes] = useState(dislikeCount);
+
+  const handleLike = () => {
+    if (!localLike) {
+      setLikes(likes + 1);
+      setLocalLike(true);
+      if (localDislike) {
+        setDislikes(dislikes - 1);
+        setLocalDislike(false);
+      }
+      onLike?.();
+    } else {
+      setLikes(likes - 1);
+      setLocalLike(false);
+    }
+  };
+
+  const handleDislike = () => {
+    if (!localDislike) {
+      setDislikes(dislikes + 1);
+      setLocalDislike(true);
+      if (localLike) {
+        setLikes(likes - 1);
+        setLocalLike(false);
+      }
+      onDislike?.();
+    } else {
+      setDislikes(dislikes - 1);
+      setLocalDislike(false);
+    }
+  };
 
   return (
     <View style={styles.card}>
@@ -48,23 +82,22 @@ export default function NewsCard({
       )}
 
       <View style={styles.content}>
-        <Text style={styles.title}>{title}</Text>
+        {/* Clickable Title */}
+        <Pressable
+          onPress={() => {
+            if (typeof sourceUrl === 'string' && sourceUrl.startsWith('http')) {
+              Linking.openURL(sourceUrl);
+            }
+          }}
+        >
+          <Text style={[styles.title, styles.titleLink]}>{title}</Text>
+        </Pressable>
 
         {/* Summary Section */}
-        <Pressable style={styles.section} onPress={() => shouldTruncate && setIsExpanded(!isExpanded)}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.heading}>📌 Summary</Text>
-            {shouldTruncate && (
-              <MaterialIcons name={isExpanded ? 'expand-less' : 'expand-more'} size={20} color="#007bff" />
-            )}
-          </View>
+        <View style={styles.section}>
+          <Text style={styles.heading}>📌 Summary</Text>
           <Text style={styles.text}>{displaySummary}</Text>
-          {shouldTruncate && (
-            <Text style={styles.expandText}>
-              {isExpanded ? 'Tap to collapse' : 'Tap to read more'}
-            </Text>
-          )}
-        </Pressable>
+        </View>
 
         {/* Why It Matters */}
         <View style={styles.section}>
@@ -78,15 +111,38 @@ export default function NewsCard({
           <Text style={styles.text}>{upskill || 'No upskill advice yet.'}</Text>
         </View>
 
-        {/* Actions */}
-        <View style={styles.buttonRow}>
+        {/* YouTube Button (smaller, above action row) */}
+        {youtube?.url && (
+          <View style={styles.youtubeWrapperSmall}>
+            <Pressable
+              style={styles.youtubeButtonSmall}
+              onPress={() => {
+                if (typeof youtube.url === 'string' && youtube.url.startsWith('http')) {
+                  Linking.openURL(youtube.url);
+                }
+              }}
+            >
+              <Text style={styles.youtubeButtonTextSmall}>▶ {youtube.title || 'Watch Video'}</Text>
+            </Pressable>
+          </View>
+        )}
+
+        {/* Action Buttons Row */}
+        <View style={styles.actionRow}>
           {sourceUrl && (
-            <Pressable style={styles.button} onPress={() => Linking.openURL(sourceUrl)}>
+            <Pressable
+              style={styles.button}
+              onPress={() => {
+                if (typeof sourceUrl === 'string' && sourceUrl.startsWith('http')) {
+                  Linking.openURL(sourceUrl);
+                }
+              }}
+            >
               <Text style={styles.buttonText}>🔗 Read This Article</Text>
             </Pressable>
           )}
           <View style={{ flex: 1 }} />
-          <Pressable style={styles.saveButton} onPress={onToggleSave}>
+          <Pressable style={styles.saveButton} onPress={() => onToggleSave?.()}>
             <MaterialIcons
               name={isSaved ? 'bookmark' : 'bookmark-border'}
               size={26}
@@ -98,13 +154,13 @@ export default function NewsCard({
 
         {/* Like/Dislike */}
         <View style={styles.likeRow}>
-          <Pressable style={styles.iconButton} onPress={onLike}>
-            <MaterialIcons name="thumb-up" size={16} color="#007bff" />
-            <Text style={styles.countText}>{likeCount}</Text>
+          <Pressable style={styles.iconButton} onPress={handleLike}>
+            <MaterialIcons name="thumb-up" size={16} color={localLike ? '#007bff' : '#aaa'} />
+            <Text style={styles.countText}>{likes}</Text>
           </Pressable>
-          <Pressable style={styles.iconButton} onPress={onDislike}>
-            <MaterialIcons name="thumb-down" size={16} color="#e74c3c" />
-            <Text style={styles.countText}>{dislikeCount}</Text>
+          <Pressable style={styles.iconButton} onPress={handleDislike}>
+            <MaterialIcons name="thumb-down" size={16} color={localDislike ? '#e74c3c' : '#aaa'} />
+            <Text style={styles.countText}>{dislikes}</Text>
           </Pressable>
         </View>
       </View>
@@ -124,10 +180,11 @@ const styles = StyleSheet.create({
     elevation: 6,
     width: width - 24,
     alignSelf: 'center',
+    maxHeight: 680,
   },
   headerImage: {
     width: '100%',
-    height: 200,
+    height: 110,
     resizeMode: 'cover',
   },
   noImage: {
@@ -146,33 +203,43 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#111',
     marginBottom: 16,
+  },
+  titleLink: {
+    color: '#007bff',
+    textDecorationLine: 'underline',
   },
   section: {
     marginBottom: 16,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
   heading: {
-    fontSize: 16,
+    fontSize: 13,
     fontWeight: '700',
     color: '#333',
+    marginBottom: 6,
   },
   text: {
-    fontSize: 15,
+    fontSize: 12,
     color: '#444',
     lineHeight: 22,
   },
-  expandText: {
-    fontSize: 12,
-    color: '#007bff',
-    fontStyle: 'italic',
-    textAlign: 'center',
-    marginTop: 4,
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  youtubeButton: {
+    backgroundColor: '#ff0000',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+  },
+  youtubeButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   buttonRow: {
     flexDirection: 'row',
@@ -220,5 +287,20 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     marginTop: 10,
+  },
+  youtubeWrapperSmall: {
+    marginBottom: 8,
+    alignItems: 'flex-start',
+  },
+  youtubeButtonSmall: {
+    backgroundColor: '#ff0000',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  youtubeButtonTextSmall: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 12,
   },
 });

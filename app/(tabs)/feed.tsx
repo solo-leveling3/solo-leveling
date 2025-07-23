@@ -42,6 +42,7 @@ export default function FeedScreen() {
             summary: parsedSummary.summary,
             why: parsedSummary.why,
             upskill: parsedSummary.upskill,
+            sourceUrl: card.link, // ✅ add sourceUrl from Firebase's `link` field
           };
         });
 
@@ -102,6 +103,7 @@ export default function FeedScreen() {
     article
       ? {
           ...article,
+          sourceUrl: article.sourceUrl, // ✅ ensure it's passed to NewsCard
           isSaved: isArticleSaved(article.id),
           onToggleSave: () => handleToggleSave(article),
         }
