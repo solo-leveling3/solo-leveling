@@ -26,6 +26,10 @@ export default function FeedScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  // ✅ New state maps for like/dislike
+  const [likesMap, setLikesMap] = useState<{ [id: string]: number }>({});
+  const [dislikesMap, setDislikesMap] = useState<{ [id: string]: number }>({});
+
   useEffect(() => {
     let isMounted = true;
 
@@ -42,7 +46,7 @@ export default function FeedScreen() {
             summary: parsedSummary.summary,
             why: parsedSummary.why,
             upskill: parsedSummary.upskill,
-            sourceUrl: card.link, // ✅ add sourceUrl from Firebase's `link` field
+            sourceUrl: card.link,
           };
         });
 
@@ -96,6 +100,22 @@ export default function FeedScreen() {
     }
   };
 
+  // ✅ Like handler
+  const handleLike = (id: string) => {
+    setLikesMap((prev) => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+    if (dislikesMap[id]) {
+      setDislikesMap((prev) => ({ ...prev, [id]: Math.max(0, prev[id] - 1) }));
+    }
+  };
+
+  // ✅ Dislike handler
+  const handleDislike = (id: string) => {
+    setDislikesMap((prev) => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+    if (likesMap[id]) {
+      setLikesMap((prev) => ({ ...prev, [id]: Math.max(0, prev[id] - 1) }));
+    }
+  };
+
   const current = articles[index];
   const next = articles[index + 1];
 
@@ -103,9 +123,13 @@ export default function FeedScreen() {
     article
       ? {
           ...article,
-          sourceUrl: article.sourceUrl, // ✅ ensure it's passed to NewsCard
+          sourceUrl: article.sourceUrl,
           isSaved: isArticleSaved(article.id),
           onToggleSave: () => handleToggleSave(article),
+          onLike: () => handleLike(article.id),
+          onDislike: () => handleDislike(article.id),
+          likeCount: likesMap[article.id] ?? article.likeCount ?? 0,
+          dislikeCount: dislikesMap[article.id] ?? article.dislikeCount ?? 0,
         }
       : null;
 
