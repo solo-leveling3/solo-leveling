@@ -34,26 +34,28 @@ export default function NewsCard({
   onDislike,
 }: NewsCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const shouldTruncate = summary.length > 150;
-  const displaySummary = shouldTruncate && !isExpanded 
-    ? summary.substring(0, 150) + "..." 
+  const shouldTruncate = summary.length > 180;
+  const displaySummary = shouldTruncate && !isExpanded
+    ? summary.substring(0, 180) + '...'
     : summary;
 
   return (
     <View style={styles.card}>
-      {image && <Image source={{ uri: image }} style={styles.headerImage} />}
+      {image ? (
+        <Image source={{ uri: image }} style={styles.headerImage} />
+      ) : (
+        <View style={styles.noImage}><Text style={styles.noImageText}>No Image</Text></View>
+      )}
+
       <View style={styles.content}>
         <Text style={styles.title}>{title}</Text>
 
+        {/* Summary Section */}
         <Pressable style={styles.section} onPress={() => shouldTruncate && setIsExpanded(!isExpanded)}>
           <View style={styles.sectionHeader}>
             <Text style={styles.heading}>📌 Summary</Text>
             {shouldTruncate && (
-              <MaterialIcons 
-                name={isExpanded ? 'expand-less' : 'expand-more'} 
-                size={20} 
-                color="#007bff" 
-              />
+              <MaterialIcons name={isExpanded ? 'expand-less' : 'expand-more'} size={20} color="#007bff" />
             )}
           </View>
           <Text style={styles.text}>{displaySummary}</Text>
@@ -64,16 +66,19 @@ export default function NewsCard({
           )}
         </Pressable>
 
+        {/* Why It Matters */}
         <View style={styles.section}>
           <Text style={styles.heading}>💡 Why It Matters</Text>
-          <Text style={styles.text}>{why}</Text>
+          <Text style={styles.text}>{why || 'No insight available yet.'}</Text>
         </View>
 
+        {/* How to Upskill */}
         <View style={styles.section}>
           <Text style={styles.heading}>📈 How to Upskill</Text>
-          <Text style={styles.text}>{upskill}</Text>
+          <Text style={styles.text}>{upskill || 'No upskill advice yet.'}</Text>
         </View>
 
+        {/* Actions */}
         <View style={styles.buttonRow}>
           {sourceUrl && (
             <Pressable style={styles.button} onPress={() => Linking.openURL(sourceUrl)}>
@@ -81,23 +86,25 @@ export default function NewsCard({
             </Pressable>
           )}
           <View style={{ flex: 1 }} />
-          <Pressable style={styles.saveButton} onPress={onToggleSave} hitSlop={16}>
+          <Pressable style={styles.saveButton} onPress={onToggleSave}>
             <MaterialIcons
               name={isSaved ? 'bookmark' : 'bookmark-border'}
-              size={28}
-              color={isSaved ? '#007bff' : '#888'}
+              size={26}
+              color={isSaved ? '#007bff' : '#aaa'}
             />
-            <Text style={[styles.buttonText, { color: isSaved ? '#007bff' : '#888', marginLeft: 4 }]}>Save</Text>
+            <Text style={[styles.saveText, { color: isSaved ? '#007bff' : '#888' }]}>Save</Text>
           </Pressable>
         </View>
+
+        {/* Like/Dislike */}
         <View style={styles.likeRow}>
-          <Pressable style={styles.iconButtonTiny} onPress={onLike} hitSlop={6}>
+          <Pressable style={styles.iconButton} onPress={onLike}>
             <MaterialIcons name="thumb-up" size={16} color="#007bff" />
-            <Text style={styles.countTextTiny}>{likeCount}</Text>
+            <Text style={styles.countText}>{likeCount}</Text>
           </Pressable>
-          <Pressable style={styles.iconButtonTiny} onPress={onDislike} hitSlop={6}>
+          <Pressable style={styles.iconButton} onPress={onDislike}>
             <MaterialIcons name="thumb-down" size={16} color="#e74c3c" />
-            <Text style={styles.countTextTiny}>{dislikeCount}</Text>
+            <Text style={styles.countText}>{dislikeCount}</Text>
           </Pressable>
         </View>
       </View>
@@ -107,16 +114,14 @@ export default function NewsCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#ffffff',
+    backgroundColor: '#fff',
     borderRadius: 20,
     overflow: 'hidden',
-    marginHorizontal: 12,
-    marginVertical: 20,
+    margin: 12,
     shadowColor: '#000',
-    shadowOpacity: 0.12,
+    shadowOpacity: 0.1,
     shadowRadius: 10,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 8,
+    elevation: 6,
     width: width - 24,
     alignSelf: 'center',
   },
@@ -125,21 +130,30 @@ const styles = StyleSheet.create({
     height: 200,
     resizeMode: 'cover',
   },
+  noImage: {
+    height: 200,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#eee',
+  },
+  noImageText: {
+    color: '#888',
+    fontSize: 14,
+  },
   content: {
     padding: 20,
   },
   title: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: 'bold',
     color: '#111',
-    marginBottom: 18,
+    marginBottom: 16,
   },
   section: {
     marginBottom: 16,
   },
   sectionHeader: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 6,
   },
@@ -157,110 +171,54 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#007bff',
     fontStyle: 'italic',
-    marginTop: 4,
     textAlign: 'center',
+    marginTop: 4,
   },
   buttonRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 18,
+    marginTop: 10,
     gap: 16,
-  },
-  iconButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f2f6ff',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    marginRight: 0,
-  },
-  countText: {
-    fontSize: 16,
-    color: '#222',
-    marginLeft: 6,
-    minWidth: 22,
-    textAlign: 'center',
-    fontWeight: '600',
   },
   button: {
     backgroundColor: '#007bff',
     borderRadius: 10,
-    paddingVertical: 12,
+    paddingVertical: 10,
     paddingHorizontal: 18,
-    alignItems: 'center',
-    flexDirection: 'row',
+  },
+  buttonText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 14,
   },
   saveButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f2f6ff',
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 18,
-    marginLeft: 0,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
-  },
-  iconButtonSmall: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f2f6ff',
-    borderRadius: 8,
-    paddingVertical: 6,
+    gap: 6,
     paddingHorizontal: 10,
-    marginRight: 0,
-  },
-  countTextSmall: {
-    fontSize: 13,
-    color: '#222',
-    marginLeft: 4,
-    minWidth: 18,
-    textAlign: 'center',
-    fontWeight: '600',
-  },
-  iconButtonMedium: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f2f6ff',
-    borderRadius: 9,
     paddingVertical: 8,
-    paddingHorizontal: 14,
-    marginRight: 0,
   },
-  countTextMedium: {
-    fontSize: 15,
-    color: '#222',
-    marginLeft: 5,
-    minWidth: 20,
-    textAlign: 'center',
+  saveText: {
+    fontSize: 14,
     fontWeight: '600',
   },
-  iconButtonTiny: {
+  iconButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f2f6ff',
-    borderRadius: 6,
-    paddingVertical: 2,
-    paddingHorizontal: 6,
-    marginRight: 0,
+    backgroundColor: '#f2f2f2',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+    marginHorizontal: 6,
   },
-  countTextTiny: {
-    fontSize: 11,
-    color: '#222',
-    marginLeft: 2,
-    minWidth: 12,
-    textAlign: 'center',
-    fontWeight: '600',
+  countText: {
+    marginLeft: 4,
+    fontSize: 12,
+    color: '#333',
   },
   likeRow: {
     flexDirection: 'row',
-    alignItems: 'center',
     justifyContent: 'center',
     marginTop: 10,
-    gap: 10,
   },
 });
