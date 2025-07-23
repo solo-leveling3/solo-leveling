@@ -8,7 +8,7 @@ import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from 'react-n
 function parseCardSummary(summary: string) {
   const titleMatch = summary.match(/\ud83d\udd16 Headline:\s*(.*?)\s*(?:\u270f|$)/);
   const summaryMatch = summary.match(/\u270f Summary:\s*(.*?)\s*(?:\u2757|$)/);
-  const whyMatch = summary.match(/\u2757 Why it matters:\s*(.*?)\s*(?:\ud83d\ude80|$)/);
+  const whyMatch = summary.match(/\u2757 Why it's Useful:\s*(.*?)\s*(?:\ud83d\ude80|$)/);
   const upskillMatch = summary.match(/\ud83d\ude80 Key Takeaway:\s*(.*)/);
 
   return {
