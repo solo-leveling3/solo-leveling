@@ -1,24 +1,28 @@
 import { useAppContext } from '@/contexts/AppContext';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
+import {
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View
+} from 'react-native';
 
 const languages = [
   { code: 'en', label: 'English', icon: 'language' },
   { code: 'hi', label: 'Hindi (हिंदी)', icon: 'flag-outline' },
   { code: 'te', label: 'Telugu (తెలుగు)', icon: 'flag-outline' },
-  { code: 'ta', label: 'Tamil (தமிழ்)', icon: 'flag-outline' },
 ];
 
 export default function ProfileScreen() {
   const { language, setLanguage } = useAppContext();
 
   return (
-    <LinearGradient
-      colors={['#f3f4f8', '#e5ecf9']}
-      style={styles.gradient}
-    >
-      <View style={styles.container}>
+    <LinearGradient colors={['#f3f4f8', '#e5ecf9']} style={styles.gradient}>
+      <ScrollView contentContainerStyle={styles.container}>
         <Text style={styles.title}>🌐 Select Language</Text>
 
         <View style={styles.cardGrid}>
@@ -26,22 +30,14 @@ export default function ProfileScreen() {
             <Pressable
               key={code}
               onPress={() => setLanguage(code)}
-              style={[
-                styles.languageCard,
-                language === code && styles.activeCard
-              ]}
+              style={[styles.languageCard, language === code && styles.activeCard]}
             >
               <Ionicons
                 name={icon as any}
                 size={24}
                 color={language === code ? '#fff' : '#007bff'}
               />
-              <Text
-                style={[
-                  styles.languageLabel,
-                  language === code && styles.activeLabel
-                ]}
-              >
+              <Text style={[styles.languageLabel, language === code && styles.activeLabel]}>
                 {label}
               </Text>
             </Pressable>
@@ -50,9 +46,14 @@ export default function ProfileScreen() {
 
         <View style={styles.section}>
           <Text style={styles.sectionHeading}>⚙️ App Settings</Text>
-          <Text style={styles.soonText}>Coming Soon...</Text>
+          <Text style={styles.soonText}>More coming soon...</Text>
         </View>
-      </View>
+
+        <Pressable onPress={() => router.push('/aitools-section')} style={styles.aiButton}>
+          <Ionicons name="rocket-outline" size={20} color="#fff" />
+          <Text style={styles.aiButtonText}>Explore AI Tools</Text>
+        </Pressable>
+      </ScrollView>
     </LinearGradient>
   );
 }
@@ -62,9 +63,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   container: {
-    flex: 1,
     paddingHorizontal: 24,
     paddingTop: Platform.OS === 'ios' ? 64 : 44,
+    paddingBottom: 40,
   },
   title: {
     fontSize: 28,
@@ -85,7 +86,7 @@ const styles = StyleSheet.create({
     width: '48%',
     backgroundColor: '#ffffffcc',
     borderRadius: 20,
-    padding: 22,
+    padding: 20,
     alignItems: 'center',
     justifyContent: 'center',
     elevation: 10,
@@ -115,17 +116,13 @@ const styles = StyleSheet.create({
     color: '#fff',
   },
   section: {
-    marginTop: 50,
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#ccc',
-    paddingTop: 24,
+    marginTop: 40,
   },
   sectionHeading: {
     fontSize: 18,
     fontWeight: '700',
     color: '#333',
-    marginBottom: 10,
+    marginBottom: 14,
   },
   soonText: {
     fontSize: 15,
@@ -135,5 +132,51 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 20,
     fontWeight: '600',
+    textAlign: 'center',
+  },
+  toolsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    rowGap: 16,
+    marginBottom: 30,
+  },
+  toolCard: {
+    width: '48%',
+    backgroundColor: '#ffffffcc',
+    borderRadius: 16,
+    padding: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e7ff',
+    shadowColor: '#007bff',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 3,
+  },
+  toolName: {
+    marginTop: 10,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1c1c40',
+    textAlign: 'center',
+  },
+  aiButton: {
+    flexDirection: 'row',
+    backgroundColor: '#007bff',
+    padding: 14,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop:25,
+  },
+  aiButtonText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+
   },
 });

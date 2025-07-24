@@ -1,4 +1,5 @@
 import NewsCard from '@/components/ui/NewsCard';
+import type { SavedArticle } from '@/contexts/AppContext';
 import { useAppContext } from '@/contexts/AppContext';
 import React from 'react';
 import { Dimensions, FlatList, StyleSheet, Text, View } from 'react-native';
@@ -12,7 +13,7 @@ export default function SavedScreen() {
     removeSavedArticle(articleId);
   };
 
-  const renderSavedArticle = ({ item }: { item: any }) => {
+  const renderSavedArticle = ({ item }: { item: SavedArticle }) => {
     const savedDate = new Date(item.savedAt);
     const formattedDate = savedDate.toLocaleDateString() + ' ' + savedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     
@@ -30,6 +31,12 @@ export default function SavedScreen() {
           image={item.image}
           isSaved={isArticleSaved(item.id)}
           onToggleSave={() => handleToggleSave(item.id)}
+          // Provide undefined for optional props
+          youtube={undefined}
+          likeCount={0}
+          dislikeCount={0}
+          onLike={undefined}
+          onDislike={undefined}
         />
       </View>
     );
@@ -50,10 +57,10 @@ export default function SavedScreen() {
   return (
     <View style={styles.container}>
       <Text style={styles.headerTitle}>Saved Articles ({savedArticles.length})</Text>
-      <FlatList
+      <FlatList<SavedArticle>
         data={[...savedArticles].sort((a, b) => b.savedAt - a.savedAt)} // Sort by most recent first
         renderItem={renderSavedArticle}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id || Math.random().toString()}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
       />

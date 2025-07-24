@@ -1,4 +1,5 @@
 import { MaterialIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
 import React from 'react';
 import {
   Dimensions,
@@ -11,18 +12,33 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
 
 const { width, height: screenHeight } = Dimensions.get('window');
+const THUMBNAIL_HORIZONTAL_MARGIN = 40;
+const THUMBNAIL_WIDTH = width - THUMBNAIL_HORIZONTAL_MARGIN;
+
 const extractYouTubeID = (url: string): string | null => {
   const regex = /(?:youtube\.com.*(?:\?|&)v=|youtu\.be\/)([^&]+)/;
   const match = url.match(regex);
   return match ? match[1] : null;
 };
 
-// Helper to get responsive thumbnail width
-const THUMBNAIL_HORIZONTAL_MARGIN = 40;
-const THUMBNAIL_WIDTH = width - THUMBNAIL_HORIZONTAL_MARGIN;
-
+function formatDate(timestamp: any) {
+  if (!timestamp) return '';
+  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
 
 interface NewsCardProps {
   title: string;
@@ -38,7 +54,11 @@ interface NewsCardProps {
   dislikeCount?: number;
   onLike?: () => void;
   onDislike?: () => void;
-  style?: ViewStyle; // allow external styles (e.g., from SwipeableCard)
+  timestamp?: any;
+  style?: ViewStyle;
+  summaryExpanded?: boolean;
+  onToggleSummary?: () => void;
+  lessonContent?: string;
 }
 
 export default function NewsCard({
@@ -55,10 +75,20 @@ export default function NewsCard({
   dislikeCount = 0,
   onLike,
   onDislike,
+  timestamp,
   style,
+  summaryExpanded = false,
+  onToggleSummary,
+  lessonContent,
 }: NewsCardProps) {
-  const displaySummary = summary.length > 180 ? summary.substring(0, 180) + '...' : summary;
-  
+  const router = useRouter();
+  const truncated = summary.length > 180;
+  const displaySummary = summaryExpanded || !truncated ? summary : summary.substring(0, 180) + '...';
+
+  const scale = useSharedValue(1);
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
 
   return (
     <View style={[styles.card, style]}>
@@ -71,90 +101,84 @@ export default function NewsCard({
       )}
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Clickable Title */}
-        <Pressable
-          onPress={() => {
-            if (typeof sourceUrl === 'string' && sourceUrl.startsWith('http')) {
-              Linking.openURL(sourceUrl);
-            }
-          }}
-        >
-          <Text style={[styles.title, styles.titleLink]}>{title}</Text>
+        <Pressable onPress={() => sourceUrl && sourceUrl.startsWith('http') && Linking.openURL(sourceUrl)}>
+          <Text style={[styles.title, styles.titleLink]} numberOfLines={2} ellipsizeMode="tail">
+            {title}
+          </Text>
         </Pressable>
 
-        {/* Summary */}
+        {timestamp && <Text style={styles.timestampText}>🕒 {formatDate(timestamp)}</Text>}
+
         <View style={styles.section}>
           <Text style={styles.heading}>📌 Summary</Text>
-          <Text style={styles.text}>{displaySummary}</Text>
+          <Text style={styles.text}>
+            {displaySummary}
+            {truncated && (
+              <Text style={styles.readMoreText} onPress={onToggleSummary}>
+                {summaryExpanded ? ' Show less' : 'Read more'}
+              </Text>
+            )}
+          </Text>
         </View>
 
-        {/* Why It Matters */}
         <View style={styles.section}>
           <Text style={styles.heading}>💡 Why It Matters</Text>
           <Text style={styles.text}>{why}</Text>
         </View>
 
-        {/* How to Upskill */}
         <View style={styles.section}>
           <Text style={styles.heading}>📈 Key Takeaways</Text>
           <Text style={styles.text}>{upskill}</Text>
         </View>
 
-        {/* YouTube */}
-      {youtube?.url && (
-       <Pressable
-         style={styles.youtubeRow}
-         onPress={() => Linking.openURL(youtube.url)}
-         accessibilityRole="button"
-         accessibilityLabel={youtube.title ? `Watch YouTube video: ${youtube.title}` : 'Watch YouTube video'}
-       >
-         <View style={styles.thumbnailButton}>
-           <Image
-             source={{
-               uri: `https://img.youtube.com/vi/${extractYouTubeID(youtube.url)}/hqdefault.jpg`,
-             }}
-             style={styles.youtubeThumbnailSmall}
-           />
-           <View style={styles.playOverlay} pointerEvents="none">
-             <MaterialIcons name="play-circle-fill" size={36} color="white" />
-           </View>
-         </View>
-         <View style={styles.watchTextWrapper}>
-           <Text style={styles.watchText}>▶ Watch This Video</Text>
-           <Text style={styles.youtubeVideoTitle}>{youtube.title || ''}</Text>
-         </View>
-       </Pressable>
+        {youtube?.url && (
+          <Pressable
+            style={styles.youtubeRow}
+            onPress={() => Linking.openURL(youtube.url)}
+            accessibilityRole="button"
+            accessibilityLabel={youtube.title ? `Watch YouTube video: ${youtube.title}` : 'Watch YouTube video'}
+          >
+            <View style={styles.thumbnailButton}>
+              <Image
+                source={{ uri: `https://img.youtube.com/vi/${extractYouTubeID(youtube.url)}/hqdefault.jpg` }}
+                style={styles.youtubeThumbnailSmall}
+              />
+              <View style={styles.playOverlay} pointerEvents="none">
+                <MaterialIcons name="play-circle-fill" size={36} color="white" />
+              </View>
+            </View>
+            <View style={styles.watchTextWrapper}>
+              <Text style={styles.watchText}>▶ Watch AI Recommended Video</Text>
+            </View>
+          </Pressable>
         )}
-        {/* Action Row */}
-        <View style={styles.actionRow}>
-          {sourceUrl && (
-            <Pressable
-              style={styles.button}
-              onPress={() => Linking.openURL(sourceUrl)}
-            >
-              <Text style={styles.buttonText}>🔗 Read This Article</Text>
-            </Pressable>
-          )}
-          <View style={{ flex: 1 }} />
-          <Pressable style={styles.saveButton} onPress={onToggleSave}>
-            <MaterialIcons
-              name={isSaved ? 'bookmark' : 'bookmark-border'}
-              size={26}
-              color={isSaved ? '#007bff' : '#aaa'}
-            />
-            <Text style={[styles.saveText, { color: isSaved ? '#007bff' : '#888' }]}>Save</Text>
-          </Pressable>
-        </View>
 
-        {/* Like / Dislike */}
-        <View style={styles.likeRow}>
-          <Pressable style={styles.iconButton} onPress={onLike}>
-            <MaterialIcons name="thumb-up" size={16} color="#007bff" />
-            <Text style={styles.countText}>{likeCount}</Text>
-          </Pressable>
-          <Pressable style={styles.iconButton} onPress={onDislike}>
-            <MaterialIcons name="thumb-down" size={16} color="#e74c3c" />
-            <Text style={styles.countText}>{dislikeCount}</Text>
+        <View style={styles.actionRow}>
+          <Animated.View style={[styles.animatedWrapper, animatedStyle]}>
+            <Pressable
+              style={styles.animatedButton}
+              onPressIn={() => (scale.value = withSpring(0.95))}
+              onPressOut={() => (scale.value = withSpring(1))}
+              onPress={() =>
+                router.push({
+                  pathname: '/lesson-details',
+                  params: {
+                    id: title,
+                    content: lessonContent ?? '',
+                    image,
+                  },
+                })
+              }
+            >
+              <Text style={styles.buttonText}>✨Read AI Summary</Text>
+            </Pressable>
+          </Animated.View>
+
+          <View style={{ flex: 1 }} />
+
+          <Pressable style={styles.saveButton} onPress={onToggleSave}>
+            <MaterialIcons name={isSaved ? 'bookmark' : 'bookmark-border'} size={26} color={isSaved ? '#007bff' : '#aaa'} />
+            <Text style={[styles.saveText, { color: isSaved ? '#007bff' : '#888' }]}>Save</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -163,24 +187,22 @@ export default function NewsCard({
 }
 
 const styles = StyleSheet.create({
-card: {
-  backgroundColor: '#fff',
-  borderRadius: 20,
-  overflow: 'hidden',
-  shadowColor: '#000',
-  shadowOpacity: 0.1,
-  shadowRadius: 10,
-  elevation: 6,
-  width: width,             // ✅ Full screen width
-  height: screenHeight - 40, // ✅ Slight padding from bottom
-  marginTop: 45,            // ✅ Space below notch
-  alignSelf: 'center',
-},
-
-
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 6,
+    width: width,
+    height: screenHeight - 40,
+    marginTop: 28,
+    alignSelf: 'center',
+  },
   headerImage: {
     width: '100%',
-    height: 130,
+    height: 135,
     resizeMode: 'cover',
   },
   noImage: {
@@ -200,11 +222,15 @@ card: {
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 16,
+    marginBottom: 10,
   },
   titleLink: {
     color: '#007bff',
-    // textDecorationLine: 'underline',
+  },
+  timestampText: {
+    fontSize: 9.5,
+    color: '#666',
+    marginBottom: 5,
   },
   section: {
     marginBottom: 16,
@@ -227,16 +253,28 @@ card: {
     marginTop: 10,
     marginBottom: 10,
   },
-  button: {
-    backgroundColor: '#007bff',
-    borderRadius: 10,
+  animatedWrapper: {
+    borderRadius: 14,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 3 },
+    elevation: 4,
+  },
+  animatedButton: {
+    backgroundColor: '#4c68ff',
     paddingVertical: 10,
-    paddingHorizontal: 18,
+    paddingHorizontal: 20,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   buttonText: {
     color: '#fff',
     fontWeight: '700',
     fontSize: 14,
+    letterSpacing: 0.4,
   },
   saveButton: {
     flexDirection: 'row',
@@ -249,75 +287,50 @@ card: {
     fontSize: 14,
     fontWeight: '600',
   },
-  likeRow: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 10,
-  },
-  iconButton: {
+  youtubeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#f2f2f2',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    marginTop: 1,
+    marginBottom: 12,
+  },
+  thumbnailButton: {
+    width: 100,
+    height: 56,
     borderRadius: 8,
-    marginHorizontal: 6,
+    overflow: 'hidden',
+    position: 'relative',
+    marginRight: 12,
   },
-  countText: {
-    marginLeft: 4,
-    fontSize: 12,
-    color: '#333',
+  youtubeThumbnailSmall: {
+    width: '100%',
+    height: '100%',
+    resizeMode: 'cover',
   },
-youtubeRow: {
-  flexDirection: 'row',
-  alignItems: 'center',
-  marginTop: 12,
-  marginBottom: 12,
-},
-
-thumbnailButton: {
-  width: 100,
-  height: 56,
-  borderRadius: 8,
-  overflow: 'hidden',
-  position: 'relative',
-  marginRight: 12,
-},
-
-youtubeThumbnailSmall: {
-  width: '100%',
-  height: '100%',
-  resizeMode: 'cover',
-},
-
-playOverlay: {
-  position: 'absolute',
-  top: 0,
-  left: 0,
-  width: '100%',
-  height: '100%',
-  justifyContent: 'center',
-  alignItems: 'center',
-  backgroundColor: 'rgba(0,0,0,0.2)',
-},
-
-watchTextWrapper: {
-  flex: 1,
-  justifyContent: 'center',
-},
-
-watchText: {
-  fontSize: 13,
-  fontWeight: 'bold',
-  color: '#e74c3c',
-  marginBottom: 4,
-},
-
-youtubeVideoTitle: {
-  fontSize: 12,
-  color: '#333',
-  flexWrap: 'wrap',
-},
-
-
+  playOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.2)',
+  },
+  watchTextWrapper: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  watchText: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#e74c3c',
+    marginBottom: 4,
+  },
+  readMoreText: {
+    color: '#007bff',
+    fontWeight: '600',
+    marginTop: 2,
+    fontSize: 13,
+    alignSelf: 'flex-start',
+  },
 });

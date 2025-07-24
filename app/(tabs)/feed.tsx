@@ -3,19 +3,33 @@ import { useAppContext } from '@/contexts/AppContext';
 import { fetchFeedsFromFirestore } from '@/lib/firestore';
 import { translateText } from '@/lib/translate';
 import React, { useEffect, useState } from 'react';
-import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View, useColorScheme } from 'react-native';
+
+function cleanBulletPoints(text: string) {
+  return text
+    .split('•')
+    .map((line) =>
+      line
+        .trim()
+        .replace(/^\*\*[^*]+\*\*:?:?\s*/, '')
+        .replace(/^[^:\n\r]+:\s*/, '')
+    )
+    .filter(Boolean)
+    .map((point) => `• ${point}`)
+    .join('\n');
+}
 
 function parseCardSummary(summary: string) {
-  const titleMatch = summary.match(/\ud83d\udd16 Headline:\s*(.*?)\s*(?:\u270f|$)/);
-  const summaryMatch = summary.match(/\u270f Summary:\s*(.*?)\s*(?:\u2757|$)/);
-  const whyMatch = summary.match(/\u2757 Why it's Useful:\s*(.*?)\s*(?:\ud83d\ude80|$)/);
-  const upskillMatch = summary.match(/\ud83d\ude80 Key Takeaway:\s*(.*)/);
+  const titleMatch = summary.match(/🔖 Headline:\s*(.*?)\s*(?:✏|$)/);
+  const summaryMatch = summary.match(/✏ Summary:\s*(.*?)\s*(?:❗|$)/);
+  const whyMatch = summary.match(/❗ Why it's Useful:\s*(.*?)\s*(?:🚀|$)/);
+  const upskillMatch = summary.match(/🚀 Key Takeaways?:\s*([\s\S]*)/);
 
   return {
     title: titleMatch?.[1]?.trim() || '',
     summary: summaryMatch?.[1]?.trim() || '',
     why: whyMatch?.[1]?.trim() || 'No insight available yet.',
-    upskill: upskillMatch?.[1]?.trim() || 'No upskill advice yet.',
+    upskill: upskillMatch?.[1] ? cleanBulletPoints(upskillMatch[1].trim()) : 'No upskill advice yet.',
   };
 }
 
@@ -25,10 +39,11 @@ export default function FeedScreen() {
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const colorScheme = useColorScheme();
 
-  // ✅ New state maps for like/dislike
   const [likesMap, setLikesMap] = useState<{ [id: string]: number }>({});
   const [dislikesMap, setDislikesMap] = useState<{ [id: string]: number }>({});
+  const [expandedSummaries, setExpandedSummaries] = useState<{ [id: string]: boolean }>({});
 
   useEffect(() => {
     let isMounted = true;
@@ -38,7 +53,10 @@ export default function FeedScreen() {
         setLoading(true);
         const firebaseCards = await fetchFeedsFromFirestore();
 
-        const parsed = firebaseCards.map((card) => {
+        const uniqueCards = Array.from(new Map(firebaseCards.map(item => [item.id, item])).values());
+        uniqueCards.sort((a, b) => b.timestamp - a.timestamp);
+
+        const parsed = uniqueCards.map((card) => {
           const parsedSummary = parseCardSummary(card.summary || '');
           return {
             ...card,
@@ -100,7 +118,6 @@ export default function FeedScreen() {
     }
   };
 
-  // ✅ Like handler
   const handleLike = (id: string) => {
     setLikesMap((prev) => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
     if (dislikesMap[id]) {
@@ -108,7 +125,6 @@ export default function FeedScreen() {
     }
   };
 
-  // ✅ Dislike handler
   const handleDislike = (id: string) => {
     setDislikesMap((prev) => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
     if (likesMap[id]) {
@@ -130,6 +146,8 @@ export default function FeedScreen() {
           onDislike: () => handleDislike(article.id),
           likeCount: likesMap[article.id] ?? article.likeCount ?? 0,
           dislikeCount: dislikesMap[article.id] ?? article.dislikeCount ?? 0,
+          summaryExpanded: expandedSummaries[article.id] || false,
+          onToggleSummary: () => setExpandedSummaries((prev) => ({ ...prev, [article.id]: !prev[article.id] })),
         }
       : null;
 
@@ -166,14 +184,24 @@ export default function FeedScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, colorScheme === 'dark' && { backgroundColor: '#0c0c0c' }]}>
       <View style={styles.stackContainer}>
         {next && (
           <View style={styles.nextCardWrapper} pointerEvents="none">
-            <SwipeableCard card={cardProps(next)} onSwipeUp={() => {}} onSwipeDown={() => {}} />
+            <SwipeableCard
+              key={next.id}
+              card={cardProps(next)}
+              onSwipeUp={() => {}}
+              onSwipeDown={() => {}}
+            />
           </View>
         )}
-        <SwipeableCard card={cardProps(current)} onSwipeUp={handleSwipeUp} onSwipeDown={handleSwipeDown} />
+        <SwipeableCard
+          key={current.id}
+          card={cardProps(current)}
+          onSwipeUp={handleSwipeUp}
+          onSwipeDown={handleSwipeDown}
+        />
       </View>
     </SafeAreaView>
   );
