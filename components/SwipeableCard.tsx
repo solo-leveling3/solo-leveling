@@ -1,11 +1,12 @@
+import { BlurView } from 'expo-blur';
 import React from 'react';
 import { Dimensions, StyleSheet } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-    runOnJS,
-    useAnimatedStyle,
-    useSharedValue,
-    withSpring,
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
 } from 'react-native-reanimated';
 import NewsCard from './ui/NewsCard';
 
@@ -24,6 +25,7 @@ export default function SwipeableCard({ card, onSwipeUp, onSwipeDown }: Swipeabl
   const translateY = useSharedValue(0);
   const scale = useSharedValue(1);
   const opacity = useSharedValue(1);
+  const blurIntensity = useSharedValue(0);
 
   const panGesture = Gesture.Pan()
     .onUpdate((e) => {
@@ -31,6 +33,8 @@ export default function SwipeableCard({ card, onSwipeUp, onSwipeDown }: Swipeabl
       // Slightly scale and fade card as it moves
       scale.value = 1 - Math.min(Math.abs(e.translationY) / 800, 0.08);
       opacity.value = 1 - Math.min(Math.abs(e.translationY) / 800, 0.3);
+      // Add blur effect based on swipe distance
+      blurIntensity.value = Math.min(Math.abs(e.translationY) / 200, 20);
     })
     .onEnd(() => {
       if (translateY.value < -SWIPE_THRESHOLD) {
@@ -39,6 +43,7 @@ export default function SwipeableCard({ card, onSwipeUp, onSwipeDown }: Swipeabl
           translateY.value = 0;
           opacity.value = 1;
           scale.value = 1;
+          blurIntensity.value = 0;
         });
         scale.value = withSpring(0.92, SPRING_CONFIG_FAST);
         opacity.value = withSpring(0.7, SPRING_CONFIG_FAST);
@@ -48,6 +53,7 @@ export default function SwipeableCard({ card, onSwipeUp, onSwipeDown }: Swipeabl
           translateY.value = 0;
           opacity.value = 1;
           scale.value = 1;
+          blurIntensity.value = 0;
         });
         scale.value = withSpring(0.92, SPRING_CONFIG_FAST);
         opacity.value = withSpring(0.7, SPRING_CONFIG_FAST);
@@ -55,6 +61,7 @@ export default function SwipeableCard({ card, onSwipeUp, onSwipeDown }: Swipeabl
         translateY.value = withSpring(0, SPRING_CONFIG_SNAP);
         scale.value = withSpring(1, SPRING_CONFIG_SNAP);
         opacity.value = withSpring(1, SPRING_CONFIG_SNAP);
+        blurIntensity.value = withSpring(0, SPRING_CONFIG_SNAP);
       }
     });
 
@@ -66,10 +73,21 @@ export default function SwipeableCard({ card, onSwipeUp, onSwipeDown }: Swipeabl
     opacity: opacity.value,
   }));
 
+  const blurStyle = useAnimatedStyle(() => ({
+    opacity: blurIntensity.value / 20, // Convert blur intensity to opacity
+  }));
+
   return (
     <GestureDetector gesture={panGesture}>
       <Animated.View style={[styles.cardContainer, cardStyle]}>
         <NewsCard {...card} style={styles.fullCard} />
+        <Animated.View style={[styles.blurOverlay, blurStyle]} pointerEvents="none">
+          <BlurView 
+            intensity={15}
+            style={styles.blur}
+            tint="default"
+          />
+        </Animated.View>
       </Animated.View>
     </GestureDetector>
   );
@@ -83,5 +101,16 @@ const styles = StyleSheet.create({
   fullCard: {
     width: '90%',
     maxHeight: screenHeight - 120, // Adjust for notch and tab bar padding
+  },
+  blurOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 1,
+  },
+  blur: {
+    flex: 1,
   },
 });

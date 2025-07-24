@@ -1,11 +1,12 @@
 import SwipeableCard from '@/components/SwipeableCard';
 import { useAppContext } from '@/contexts/AppContext';
+import { useLanguageStrings } from '@/hooks/useLanguageStrings';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
-const NEWSAPI_KEY = '7bc2ad6714d940b6830421fb312978c3'; // <-- Replace with your NewsAPI key
-const GNEWS_KEY = '862e6ae6561cf46301ff6c8f64ff5419';     // <-- Replace with your GNews key
-const GEMINI_API_KEY = 'AIzaSyAtXAm3o30_yx8gHnfr66TWZVvVAgjhmGA';
+const NEWSAPI_KEY = process.env.EXPO_PUBLIC_NEWSAPI_KEY || '7bc2ad6714d940b6830421fb312978c3';
+const GNEWS_KEY = process.env.EXPO_PUBLIC_GNEWS_KEY || '862e6ae6561cf46301ff6c8f64ff5419';
+const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || 'AIzaSyAtXAm3o30_yx8gHnfr66TWZVvVAgjhmGA';
 
 // Helper to translate text using Google Translate API (free endpoint)
 async function translateText(text: string, targetLang: string): Promise<string> {
@@ -53,6 +54,7 @@ async function generateGeminiSummary(title: string, summary: string): Promise<{ 
 
 export default function FeedScreen() {
   const { language, saveArticle, removeSavedArticle, isArticleSaved } = useAppContext();
+  const strings = useLanguageStrings();
   const [articles, setArticles] = useState<any[]>([]);
   const [index, setIndex] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -207,7 +209,7 @@ export default function FeedScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
           <ActivityIndicator size="large" color="#007bff" />
-          <Text>Loading news...</Text>
+          <Text>{strings.feed.loadingNews}</Text>
         </View>
       </SafeAreaView>
     );
@@ -218,7 +220,7 @@ export default function FeedScreen() {
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
           <Text style={styles.errorText}>Error: {error}</Text>
-          <Text style={styles.errorSubText}>Please check your internet connection and try again.</Text>
+          <Text style={styles.errorSubText}>{strings.feed.errorMessage}</Text>
         </View>
       </SafeAreaView>
     );
@@ -228,7 +230,7 @@ export default function FeedScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centered}>
-          <Text>No news articles found.</Text>
+          <Text>{strings.feed.noArticles}</Text>
         </View>
       </SafeAreaView>
     );

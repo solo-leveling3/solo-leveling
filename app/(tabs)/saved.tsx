@@ -1,5 +1,6 @@
 import NewsCard from '@/components/ui/NewsCard';
 import { useAppContext } from '@/contexts/AppContext';
+import { useLanguageStrings } from '@/hooks/useLanguageStrings';
 import React from 'react';
 import { Dimensions, FlatList, StyleSheet, Text, View } from 'react-native';
 
@@ -7,6 +8,7 @@ const { height } = Dimensions.get('window');
 
 export default function SavedScreen() {
   const { savedArticles, removeSavedArticle, isArticleSaved } = useAppContext();
+  const strings = useLanguageStrings();
 
   const handleToggleSave = (articleId: string) => {
     removeSavedArticle(articleId);
@@ -19,7 +21,7 @@ export default function SavedScreen() {
     return (
       <View style={styles.cardContainer}>
         <View style={styles.timestampContainer}>
-          <Text style={styles.timestampText}>Saved on {formattedDate}</Text>
+          <Text style={styles.timestampText}>{strings.saved.savedOn} {formattedDate}</Text>
         </View>
         <NewsCard
           title={item.title}
@@ -40,8 +42,8 @@ export default function SavedScreen() {
       <View style={styles.container}>
         <View style={styles.centerContent}>
           <Text style={styles.icon}>🔖</Text>
-          <Text style={styles.title}>Saved News</Text>
-          <Text style={styles.text}>Your bookmarked news will appear here.</Text>
+          <Text style={styles.title}>{strings.saved.title}</Text>
+          <Text style={styles.text}>{strings.saved.description}</Text>
         </View>
       </View>
     );
@@ -49,7 +51,7 @@ export default function SavedScreen() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.headerTitle}>Saved Articles ({savedArticles.length})</Text>
+      <Text style={styles.headerTitle}>{strings.saved.savedArticles} ({savedArticles.length})</Text>
       <FlatList
         data={[...savedArticles].sort((a, b) => b.savedAt - a.savedAt)} // Sort by most recent first
         renderItem={renderSavedArticle}

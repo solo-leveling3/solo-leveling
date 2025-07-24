@@ -1,3 +1,4 @@
+import { useLanguageStrings } from '@/hooks/useLanguageStrings';
 import { MaterialIcons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Dimensions, Image, Linking, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -13,10 +14,6 @@ interface NewsCardProps {
   image?: string;
   isSaved?: boolean;
   onToggleSave?: () => void;
-  likeCount?: number;
-  dislikeCount?: number;
-  onLike?: () => void;
-  onDislike?: () => void;
 }
 
 export default function NewsCard({
@@ -28,12 +25,9 @@ export default function NewsCard({
   image,
   isSaved,
   onToggleSave,
-  likeCount = 0,
-  dislikeCount = 0,
-  onLike,
-  onDislike,
 }: NewsCardProps) {
   const [isExpanded, setIsExpanded] = useState(false);
+  const strings = useLanguageStrings();
   const shouldTruncate = summary.length > 150;
   const displaySummary = shouldTruncate && !isExpanded 
     ? summary.substring(0, 150) + "..." 
@@ -41,13 +35,21 @@ export default function NewsCard({
 
   return (
     <View style={styles.card}>
-      {image && <Image source={{ uri: image }} style={styles.headerImage} />}
+      <View style={styles.imageContainer}>
+        {image ? (
+          <Image source={{ uri: image }} style={styles.headerImage} />
+        ) : (
+          <View style={styles.placeholderImage}>
+            <MaterialIcons name="article" size={48} color="#ccc" />
+          </View>
+        )}
+      </View>
       <View style={styles.content}>
         <Text style={styles.title}>{title}</Text>
 
         <Pressable style={styles.section} onPress={() => shouldTruncate && setIsExpanded(!isExpanded)}>
           <View style={styles.sectionHeader}>
-            <Text style={styles.heading}>📌 Summary</Text>
+            <Text style={styles.heading}>{strings.newsCard.summary}</Text>
             {shouldTruncate && (
               <MaterialIcons 
                 name={isExpanded ? 'expand-less' : 'expand-more'} 
@@ -59,25 +61,25 @@ export default function NewsCard({
           <Text style={styles.text}>{displaySummary}</Text>
           {shouldTruncate && (
             <Text style={styles.expandText}>
-              {isExpanded ? 'Tap to collapse' : 'Tap to read more'}
+              {isExpanded ? strings.newsCard.tapToCollapse : strings.newsCard.tapToReadMore}
             </Text>
           )}
         </Pressable>
 
         <View style={styles.section}>
-          <Text style={styles.heading}>💡 Why It Matters</Text>
+          <Text style={styles.heading}>{strings.newsCard.whyItMatters}</Text>
           <Text style={styles.text}>{why}</Text>
         </View>
 
         <View style={styles.section}>
-          <Text style={styles.heading}>📈 How to Upskill</Text>
+          <Text style={styles.heading}>{strings.newsCard.howToUpskill}</Text>
           <Text style={styles.text}>{upskill}</Text>
         </View>
 
         <View style={styles.buttonRow}>
           {sourceUrl && (
             <Pressable style={styles.button} onPress={() => Linking.openURL(sourceUrl)}>
-              <Text style={styles.buttonText}>🔗 Read This Article</Text>
+              <Text style={styles.buttonText}>{strings.newsCard.readArticle}</Text>
             </Pressable>
           )}
           <View style={{ flex: 1 }} />
@@ -87,17 +89,7 @@ export default function NewsCard({
               size={28}
               color={isSaved ? '#007bff' : '#888'}
             />
-            <Text style={[styles.buttonText, { color: isSaved ? '#007bff' : '#888', marginLeft: 4 }]}>Save</Text>
-          </Pressable>
-        </View>
-        <View style={styles.likeRow}>
-          <Pressable style={styles.iconButtonTiny} onPress={onLike} hitSlop={6}>
-            <MaterialIcons name="thumb-up" size={16} color="#007bff" />
-            <Text style={styles.countTextTiny}>{likeCount}</Text>
-          </Pressable>
-          <Pressable style={styles.iconButtonTiny} onPress={onDislike} hitSlop={6}>
-            <MaterialIcons name="thumb-down" size={16} color="#e74c3c" />
-            <Text style={styles.countTextTiny}>{dislikeCount}</Text>
+            <Text style={[styles.buttonText, { color: isSaved ? '#007bff' : '#888', marginLeft: 4 }]}>{strings.newsCard.save}</Text>
           </Pressable>
         </View>
       </View>
@@ -119,11 +111,23 @@ const styles = StyleSheet.create({
     elevation: 8,
     width: width - 24,
     alignSelf: 'center',
+    minHeight: 600, // Ensure consistent height
+  },
+  imageContainer: {
+    height: 200,
+    width: '100%',
   },
   headerImage: {
     width: '100%',
     height: 200,
     resizeMode: 'cover',
+  },
+  placeholderImage: {
+    width: '100%',
+    height: 200,
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   content: {
     padding: 20,

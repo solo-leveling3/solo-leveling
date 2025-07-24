@@ -1,18 +1,20 @@
 import { useAppContext } from '@/contexts/AppContext';
+import { useLanguageStrings } from '@/hooks/useLanguageStrings';
 import { Picker } from '@react-native-picker/picker';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 
 export default function ProfileScreen() {
   const { language, setLanguage } = useAppContext();
+  const strings = useLanguageStrings();
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>👤 Profile Settings</Text>
+      <Text style={styles.title}>{strings.profile.title}</Text>
 
       <View style={styles.section}>
-        <Text style={styles.label}>🌐 Language:</Text>
+        <Text style={styles.label}>{strings.profile.languageLabel}</Text>
         <Text style={styles.description}>
-          Select your preferred language for news content. This will affect both the news display and AI summaries.
+          {strings.profile.languageDescription}
         </Text>
         <Picker
           selectedValue={language}
@@ -26,12 +28,12 @@ export default function ProfileScreen() {
           <Picker.Item label="Tamil (தமிழ்)" value="ta" />
         </Picker>
         <Text style={styles.currentSelection}>
-          Current: {language === 'en' ? 'English' : language === 'hi' ? 'Hindi (हिंदी)' : language === 'te' ? 'Telugu (తెలుగు)' : 'Tamil (தமிழ்)'}
+          {strings.profile.currentSelection} {language === 'en' ? 'English' : language === 'hi' ? 'Hindi (हिंदी)' : language === 'te' ? 'Telugu (తెలుగు)' : 'Tamil (தமிழ்)'}
         </Text>
       </View>
 
       <View style={styles.section}>
-        <Text style={styles.label}>⚙️ App Settings (Coming Soon)</Text>
+        <Text style={styles.label}>{strings.profile.appSettings}</Text>
       </View>
     </View>
   );
