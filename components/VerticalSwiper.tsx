@@ -1,12 +1,22 @@
-import React, { useRef } from 'react';
-import { Dimensions, View, Text, StyleSheet, FlatList } from 'react-native';
-import Animated, { useSharedValue, useAnimatedScrollHandler } from 'react-native-reanimated';
+import React from 'react';
+import { Dimensions, FlatList, StyleSheet, Text, View } from 'react-native';
+import Animated, { useAnimatedScrollHandler, useSharedValue } from 'react-native-reanimated';
 
 const { height } = Dimensions.get('window');
 
 const AnimatedFlatList = Animated.createAnimatedComponent(FlatList);
 
-export default function VerticalSwiper({ data }) {
+interface SwiperItem {
+  id: string;
+  title: string;
+  summary: string;
+}
+
+interface VerticalSwiperProps {
+  data: SwiperItem[];
+}
+
+export default function VerticalSwiper({ data }: VerticalSwiperProps) {
   const scrollY = useSharedValue(0);
 
   const onScroll = useAnimatedScrollHandler({
@@ -18,8 +28,8 @@ export default function VerticalSwiper({ data }) {
   return (
     <AnimatedFlatList
       data={data}
-      keyExtractor={(item) => item.id}
-      renderItem={({ item }) => (
+      keyExtractor={(item: SwiperItem) => item.id}
+      renderItem={({ item }: { item: SwiperItem }) => (
         <View style={styles.card}>
           <Text style={styles.title}>{item.title}</Text>
           <Text style={styles.summary}>{item.summary}</Text>

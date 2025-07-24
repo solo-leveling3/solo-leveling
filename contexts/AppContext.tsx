@@ -19,6 +19,8 @@ interface AppContextType {
   saveArticle: (article: SavedArticle) => void;
   removeSavedArticle: (id: string) => void;
   isArticleSaved: (id: string) => boolean;
+  theme: 'light' | 'dark';
+  setTheme: (theme: 'light' | 'dark') => void;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -38,11 +40,13 @@ interface AppProviderProps {
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const [language, setLanguage] = useState('en');
   const [savedArticles, setSavedArticles] = useState<SavedArticle[]>([]);
+  const [theme, setThemeState] = useState<'light' | 'dark'>('light');
 
   // Load saved articles from AsyncStorage on app start
   useEffect(() => {
     loadSavedArticles();
     loadLanguagePreference();
+    loadThemePreference();
   }, []);
 
   const loadSavedArticles = async () => {
@@ -78,6 +82,30 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
   const handleSetLanguage = (lang: string) => {
     setLanguage(lang);
     saveLanguagePreference(lang);
+  };
+
+  const loadThemePreference = async () => {
+    try {
+      const savedTheme = await AsyncStorage.getItem('theme');
+      if (savedTheme === 'dark' || savedTheme === 'light') {
+        setThemeState(savedTheme);
+      }
+    } catch (error) {
+      console.error('Error loading theme preference:', error);
+    }
+  };
+
+  const saveThemePreference = async (theme: 'light' | 'dark') => {
+    try {
+      await AsyncStorage.setItem('theme', theme);
+    } catch (error) {
+      console.error('Error saving theme preference:', error);
+    }
+  };
+
+  const handleSetTheme = (theme: 'light' | 'dark') => {
+    setThemeState(theme);
+    saveThemePreference(theme);
   };
 
   const saveSavedArticles = async (articles: SavedArticle[]) => {
@@ -119,7 +147,9 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
       savedArticles, 
       saveArticle, 
       removeSavedArticle, 
-      isArticleSaved 
+      isArticleSaved,
+      theme,
+      setTheme: handleSetTheme
     }}>
       {children}
     </AppContext.Provider>

@@ -13,14 +13,16 @@ export default function SavedScreen() {
     removeSavedArticle(articleId);
   };
 
-  const renderSavedArticle = ({ item }: { item: SavedArticle }) => {
+  const renderSavedArticle = ({ item, index }: { item: SavedArticle; index: number }) => {
     const savedDate = new Date(item.savedAt);
     const formattedDate = savedDate.toLocaleDateString() + ' ' + savedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    
+    // Alternate card styles
+    const cardBg = index % 2 === 0 ? '#f8faff' : '#f3f4f8';
+    const borderColor = index % 2 === 0 ? '#4c68ff' : '#a084ee';
     return (
-      <View style={styles.cardContainer}>
+      <View style={[styles.cardContainer, { backgroundColor: cardBg, borderLeftColor: borderColor, borderLeftWidth: 5, shadowColor: borderColor }]}> 
         <View style={styles.timestampContainer}>
-          <Text style={styles.timestampText}>Saved on {formattedDate}</Text>
+          <Text style={[styles.timestampText, { color: borderColor, fontWeight: '700', fontStyle: 'normal' }]}>Saved on {formattedDate}</Text>
         </View>
         <NewsCard
           title={item.title}
@@ -37,6 +39,7 @@ export default function SavedScreen() {
           dislikeCount={0}
           onLike={undefined}
           onDislike={undefined}
+          style={{ margin: 0, borderRadius: 16, boxShadow: '0 2px 8px rgba(76,104,255,0.07)' }}
         />
       </View>
     );
@@ -59,7 +62,7 @@ export default function SavedScreen() {
       <Text style={styles.headerTitle}>Saved Articles ({savedArticles.length})</Text>
       <FlatList<SavedArticle>
         data={[...savedArticles].sort((a, b) => b.savedAt - a.savedAt)} // Sort by most recent first
-        renderItem={renderSavedArticle}
+        renderItem={({ item, index }) => renderSavedArticle({ item, index })}
         keyExtractor={(item) => item.id || Math.random().toString()}
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
@@ -87,16 +90,25 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   cardContainer: {
-    marginBottom: 16,
+    marginBottom: 20,
+    borderRadius: 18,
+    borderLeftWidth: 5,
+    backgroundColor: '#f8faff',
+    shadowColor: '#4c68ff',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 4,
   },
   timestampContainer: {
     marginBottom: 8,
-    paddingHorizontal: 4,
+    paddingHorizontal: 8,
+    paddingTop: 8,
   },
   timestampText: {
-    fontSize: 12,
-    color: '#888',
-    fontStyle: 'italic',
+    fontSize: 13,
+    fontWeight: '700',
+    fontStyle: 'normal',
   },
   listContent: {
     paddingBottom: 20,

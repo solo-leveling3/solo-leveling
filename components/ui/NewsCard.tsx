@@ -1,4 +1,6 @@
+import { useAppContext } from '@/contexts/AppContext';
 import { MaterialIcons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import React from 'react';
 import {
@@ -13,8 +15,8 @@ import {
   ViewStyle,
 } from 'react-native';
 import Animated, {
-  useSharedValue,
   useAnimatedStyle,
+  useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
 
@@ -82,6 +84,33 @@ export default function NewsCard({
   lessonContent,
 }: NewsCardProps) {
   const router = useRouter();
+  const { theme } = useAppContext();
+
+  // Theme-aware colors
+  const colors = theme === 'dark'
+    ? {
+        card: '#23262f',
+        section: '#181a20',
+        border: '#353945',
+        text: '#f3f4f8',
+        heading: '#a084ee', // accent for dark
+        gradient: ['#23262f', '#181a20'] as [string, string],
+        icon: '#a084ee',
+        readMore: '#a084ee',
+        title: '#c4fca4',
+      }
+    : {
+        card: '#fff',
+        section: '#f5f8ff',
+        border: '#e0e7ff',
+        text: '#222b45',
+        heading: '#1c1c40', // dark for light mode
+        gradient: ['#4c68ff', '#a084ee'] as [string, string],
+        icon: '#4c68ff',
+        readMore: '#4c68ff',
+        title: '#e6ed13',
+      };
+
   const truncated = summary.length > 180;
   const displaySummary = summaryExpanded || !truncated ? summary : summary.substring(0, 180) + '...';
 
@@ -91,46 +120,107 @@ export default function NewsCard({
   }));
 
   return (
-    <View style={[styles.card, style]}>
-      {image ? (
-        <Image source={{ uri: image }} style={styles.headerImage} />
-      ) : (
-        <View style={styles.noImage}>
-          <Text style={styles.noImageText}>No Image</Text>
-        </View>
-      )}
-
+    <View style={[styles.card, style, { backgroundColor: colors.card, borderColor: colors.border }]}>
+      <LinearGradient
+        colors={colors.gradient}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={StyleSheet.absoluteFill}
+      />
+      <View style={styles.headerWrapper}>
+        {image ? (
+          <Pressable
+            onPressIn={() => (scale.value = withSpring(0.97))}
+            onPressOut={() => (scale.value = withSpring(1))}
+            style={{ borderRadius: 20, overflow: 'hidden' }}
+          >
+            <Image source={{ uri: image }} style={styles.headerImage} />
+            <LinearGradient
+              colors={["rgba(0,0,0,0.15)", "rgba(0,0,0,0.0)"]}
+              style={styles.headerGradient}
+            />
+          </Pressable>
+        ) : (
+          <View style={styles.noImage}>
+            <Text style={[styles.noImageText, { color: colors.text }]}>No Image</Text>
+          </View>
+        )}
+      </View>
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         <Pressable onPress={() => sourceUrl && sourceUrl.startsWith('http') && Linking.openURL(sourceUrl)}>
-          <Text style={[styles.title, styles.titleLink]} numberOfLines={2} ellipsizeMode="tail">
+          <Text style={[styles.title, { color: colors.title }]} numberOfLines={2} ellipsizeMode="tail">
+
             {title}
           </Text>
         </Pressable>
-
-        {timestamp && <Text style={styles.timestampText}>🕒 {formatDate(timestamp)}</Text>}
-
-        <View style={styles.section}>
-          <Text style={styles.heading}>📌 Summary</Text>
-          <Text style={styles.text}>
-            {displaySummary}
-            {truncated && (
-              <Text style={styles.readMoreText} onPress={onToggleSummary}>
-                {summaryExpanded ? ' Show less' : 'Read more'}
+        {timestamp && (
+          <View style={[styles.timestampBadge, { backgroundColor: colors.section }]}>
+            <Text style={[styles.timestampText, { color: colors.heading }]}>
+              🕒 {formatDate(timestamp)}
+            </Text>
+          </View>
+        )}
+        {/* Section: Summary */}
+        <View style={styles.sectionGradientWrapper}>
+          <LinearGradient
+            colors={colors.gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.sectionGradient}
+          >
+            <View style={[styles.sectionCard, { backgroundColor: colors.section, borderColor: colors.border }]}>
+              <Text style={[styles.heading, { color: colors.heading }]}>📌 Summary</Text>
+              <Text style={[styles.text, { color: colors.text }]}>
+                {displaySummary}
+                {truncated && (
+                  <Text style={[styles.readMoreText, { color: colors.readMore }]} onPress={onToggleSummary}>
+                    {summaryExpanded ? ' Show less' : 'Read more'}
+                  </Text>
+                )}
               </Text>
-            )}
-          </Text>
+            </View>
+          </LinearGradient>
         </View>
-
-        <View style={styles.section}>
-          <Text style={styles.heading}>💡 Why It Matters</Text>
-          <Text style={styles.text}>{why}</Text>
+        {/* Section: Why It Matters */}
+        <View style={styles.sectionGradientWrapper}>
+          <LinearGradient
+            colors={colors.gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.sectionGradient}
+          >
+            <View style={[styles.sectionCard, { backgroundColor: colors.section, borderColor: colors.border }]}>
+              <Text style={[styles.heading, { color: colors.heading }]}>💡 Why It Matters</Text>
+              <Text style={[styles.text, { color: colors.text }]}>{why}</Text>
+            </View>
+          </LinearGradient>
         </View>
-
-        <View style={styles.section}>
-          <Text style={styles.heading}>📈 Key Takeaways</Text>
-          <Text style={styles.text}>{upskill}</Text>
+        {/* Section: Key Takeaways */}
+        <View style={styles.sectionGradientWrapper}>
+          <LinearGradient
+            colors={colors.gradient}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.sectionGradient}
+          >
+            <View style={[styles.sectionCard, { backgroundColor: colors.section, borderColor: colors.border }]}>
+              <Text style={[styles.heading, { color: colors.heading }]}>📈 Key Takeaways</Text>
+              {Array.isArray(upskill)
+                ? upskill.map((point, idx) => (
+                    <View key={idx} style={styles.bulletRow}>
+                      <MaterialIcons name="check-circle" size={16} color={colors.icon} style={{ marginRight: 6 }} />
+                      <Text style={[styles.text, { flex: 1, color: colors.text }]}>{point}</Text>
+                    </View>
+                  ))
+                : upskill.split(/\n|\.|•/).filter(Boolean).map((point, idx) => (
+                    <View key={idx} style={styles.bulletRow}>
+                      <MaterialIcons name="check-circle" size={16} color={colors.icon} style={{ marginRight: 6 }} />
+                      <Text style={[styles.text, { flex: 1, color: colors.text }]}>{point.trim()}</Text>
+                    </View>
+                  ))}
+            </View>
+          </LinearGradient>
         </View>
-
         {youtube?.url && (
           <Pressable
             style={styles.youtubeRow}
@@ -144,7 +234,7 @@ export default function NewsCard({
                 style={styles.youtubeThumbnailSmall}
               />
               <View style={styles.playOverlay} pointerEvents="none">
-                <MaterialIcons name="play-circle-fill" size={36} color="white" />
+                <MaterialIcons name="play-circle-fill" size={44} color="#fff" style={{ opacity: 0.95 }} />
               </View>
             </View>
             <View style={styles.watchTextWrapper}>
@@ -152,7 +242,6 @@ export default function NewsCard({
             </View>
           </Pressable>
         )}
-
         <View style={styles.actionRow}>
           <Animated.View style={[styles.animatedWrapper, animatedStyle]}>
             <Pressable
@@ -170,15 +259,16 @@ export default function NewsCard({
                 })
               }
             >
-              <Text style={styles.buttonText}>✨Read AI Summary</Text>
+              <Text style={styles.buttonText}>✨ Read AI Summary</Text>
             </Pressable>
           </Animated.View>
-
           <View style={{ flex: 1 }} />
-
-          <Pressable style={styles.saveButton} onPress={onToggleSave}>
-            <MaterialIcons name={isSaved ? 'bookmark' : 'bookmark-border'} size={26} color={isSaved ? '#007bff' : '#aaa'} />
-            <Text style={[styles.saveText, { color: isSaved ? '#007bff' : '#888' }]}>Save</Text>
+          <Pressable
+            style={[styles.saveButton, isSaved ? styles.saveButtonActive : styles.saveButtonInactive]}
+            onPress={onToggleSave}
+          >
+            <MaterialIcons name={isSaved ? 'bookmark' : 'bookmark-border'} size={26} color={isSaved ? '#fff' : '#4c68ff'} />
+            <Text style={[styles.saveText, isSaved ? { color: '#fff' } : { color: '#4c68ff' }]}>Save</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -188,84 +278,147 @@ export default function NewsCard({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: 'transparent',
     borderRadius: 20,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 10,
-    elevation: 6,
+    shadowOpacity: 0.13,
+    shadowRadius: 18,
+    elevation: 10,
     width: width,
-    height: screenHeight - 40,
+    height: screenHeight - 80,
     marginTop: 28,
     alignSelf: 'center',
+    borderWidth: 0.5,
+    borderColor: '#e0e7ff',
+  },
+  headerWrapper: {
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    overflow: 'hidden',
   },
   headerImage: {
     width: '100%',
-    height: 135,
+    height: 110,
     resizeMode: 'cover',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    marginTop:0,
+  },
+  headerGradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    height: 110,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   noImage: {
-    height: 130,
+    height: 90,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#eee',
+    backgroundColor: '#f3f4f6',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   noImageText: {
-    color: '#888',
-    fontSize: 14,
+    color: '#b0b0b0',
+    fontSize: 15,
+    fontWeight: '600',
   },
   content: {
     flex: 1,
-    padding: 20,
+    padding: 12,
+    paddingTop: 10,
   },
   title: {
-    fontSize: 22,
+    fontSize: 21,
     fontWeight: 'bold',
-    marginBottom: 10,
+    marginBottom: 4,
+    textShadowColor: 'rgba(76,104,255,0.08)',
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   titleLink: {
-    color: '#007bff',
+    color: '#4c68ff',
+  },
+  timestampBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: '#e0e7ff',
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    marginBottom: 8,
+    marginTop: 2,
   },
   timestampText: {
-    fontSize: 9.5,
-    color: '#666',
-    marginBottom: 5,
+    fontSize: 10.5,
+    color: '#4c68ff',
+    fontWeight: '600',
   },
-  section: {
-    marginBottom: 16,
+  sectionGradientWrapper: {
+    marginBottom: 8,
+    borderRadius: 12,
+  },
+  sectionGradient: {
+    borderRadius: 12,
+    padding: 1.5,
+  },
+  sectionCard: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 10,
+    minHeight: 40,
+    shadowColor: '#4c68ff',
+    shadowOpacity: 0.03,
+    shadowRadius: 2,
+    elevation: 1,
   },
   heading: {
-    fontSize: 13,
+    fontSize: 13, // ↓ for better compaction
     fontWeight: '700',
-    color: '#333',
-    marginBottom: 6,
+    color: '#4c68ff',
+    marginBottom: 4, // ↓ tighter section
+    letterSpacing: 0.15,
   },
   text: {
     fontSize: 12,
-    color: '#444',
-    lineHeight: 22,
+    color: '#222b45',
+    lineHeight: 20, // ↓ slightly reduced line height
+    fontWeight: '500',
+  },
+  readMoreText: {
+    fontSize: 11.5, // ↓ slightly smaller
+    fontWeight: '600',
+    color: '#4c68ff',
+    marginTop: 2,
+  },
+  bulletRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    marginBottom: 3,
   },
   actionRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 10,
-    marginBottom: 10,
+    marginTop: 6,
+    marginBottom: 6,
   },
   animatedWrapper: {
     borderRadius: 14,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
+    shadowColor: '#4c68ff',
+    shadowOpacity: 0.13,
+    shadowRadius: 8,
     shadowOffset: { width: 0, height: 3 },
     elevation: 4,
   },
   animatedButton: {
     backgroundColor: '#4c68ff',
-    paddingVertical: 10,
-    paddingHorizontal: 20,
+    paddingVertical: 8,
+    paddingHorizontal: 16,
     borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
@@ -273,7 +426,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: '#fff',
     fontWeight: '700',
-    fontSize: 14,
+    fontSize: 13,
     letterSpacing: 0.4,
   },
   saveButton: {
@@ -281,17 +434,36 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 10,
-    paddingVertical: 8,
+    paddingVertical: 6,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#4c68ff',
+    marginLeft: 8,
+  },
+  saveButtonActive: {
+    backgroundColor: '#4c68ff',
+    borderColor: '#4c68ff',
+  },
+  saveButtonInactive: {
+    backgroundColor: '#fff',
+    borderColor: '#4c68ff',
   },
   saveText: {
-    fontSize: 14,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
   },
   youtubeRow: {
     flexDirection: 'row',
     alignItems: 'center',
     marginTop: 1,
-    marginBottom: 12,
+    marginBottom: 8,
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    padding: 4,
+    shadowColor: '#4c68ff',
+    shadowOpacity: 0.03,
+    shadowRadius: 2,
+    elevation: 1,
   },
   thumbnailButton: {
     width: 100,
@@ -300,11 +472,14 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     position: 'relative',
     marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#e0e7ff',
   },
   youtubeThumbnailSmall: {
     width: '100%',
     height: '100%',
     resizeMode: 'cover',
+    borderRadius: 8,
   },
   playOverlay: {
     position: 'absolute',
@@ -314,23 +489,17 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.2)',
+    backgroundColor: 'rgba(76,104,255,0.13)',
   },
   watchTextWrapper: {
     flex: 1,
     justifyContent: 'center',
   },
   watchText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: 'bold',
-    color: '#e74c3c',
+    color: '#4c68ff',
     marginBottom: 4,
   },
-  readMoreText: {
-    color: '#007bff',
-    fontWeight: '600',
-    marginTop: 2,
-    fontSize: 13,
-    alignSelf: 'flex-start',
-  },
+
 });
