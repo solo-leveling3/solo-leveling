@@ -4,9 +4,9 @@ import { useLanguageStrings } from '@/hooks/useLanguageStrings';
 import React, { useEffect, useState } from 'react';
 import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from 'react-native';
 
-const NEWSAPI_KEY = process.env.EXPO_PUBLIC_NEWSAPI_KEY || '7bc2ad6714d940b6830421fb312978c3';
-const GNEWS_KEY = process.env.EXPO_PUBLIC_GNEWS_KEY || '862e6ae6561cf46301ff6c8f64ff5419';
-const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY || 'AIzaSyAtXAm3o30_yx8gHnfr66TWZVvVAgjhmGA';
+const NEWSAPI_KEY = process.env.EXPO_PUBLIC_NEWSAPI_KEY
+const GNEWS_KEY = process.env.EXPO_PUBLIC_GNEWS_KEY;
+const GEMINI_API_KEY = process.env.EXPO_PUBLIC_GEMINI_API_KEY;
 
 // Helper to translate text using Google Translate API (free endpoint)
 async function translateText(text: string, targetLang: string): Promise<string> {
