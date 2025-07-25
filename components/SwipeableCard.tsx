@@ -2,11 +2,11 @@ import React from 'react';
 import { Dimensions, StyleSheet } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  interpolate,
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring,
+    interpolate,
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring,
 } from 'react-native-reanimated';
 import NewsCard from './ui/NewsCard';
 

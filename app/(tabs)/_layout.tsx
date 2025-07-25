@@ -1,10 +1,10 @@
-import { Tabs } from 'expo-router';
-import { Platform } from 'react-native';
 import { HapticTab } from '@/components/HapticTab';
 import { IconSymbol } from '@/components/ui/IconSymbol';
 import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { Tabs } from 'expo-router';
+import { Platform } from 'react-native';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
@@ -27,7 +27,7 @@ export default function TabLayout() {
         options={{
           title: 'Feed',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="list.bullet" color={color} />
+            <IconSymbol size={28} name="list.bullet" color={color} modern={true} />
           ),
         }}
       />
@@ -36,7 +36,7 @@ export default function TabLayout() {
         options={{
           title: 'Saved',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="bookmark.fill" color={color} />
+            <IconSymbol size={28} name="bookmark.fill" color={color} modern={true} />
           ),
         }}
       />
@@ -45,7 +45,7 @@ export default function TabLayout() {
         options={{
           title: 'Profile',
           tabBarIcon: ({ color }) => (
-            <IconSymbol size={28} name="person.crop.circle" color={color} />
+            <IconSymbol size={28} name="person.crop.circle" color={color} modern={true} />
           ),
         }}
       />

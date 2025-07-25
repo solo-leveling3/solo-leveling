@@ -1,8 +1,9 @@
 import { useAppContext } from '@/contexts/AppContext';
+import { translateText } from '@/lib/translate';
 import { MaterialIcons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Dimensions,
   Image,
@@ -84,7 +85,61 @@ export default function NewsCard({
   lessonContent,
 }: NewsCardProps) {
   const router = useRouter();
-  const { theme } = useAppContext();
+  const { theme, language } = useAppContext();
+  const [translatedHeadings, setTranslatedHeadings] = useState({
+    summary: 'Summary',
+    why: 'Why it Matters',
+    takeaways: 'Key Takeaways',
+  });
+  const [translatedUpskill, setTranslatedUpskill] = useState<string | string[]>(upskill);
+
+useEffect(() => {
+  let isMounted = true;
+
+  async function doTranslate() {
+    if (language === 'en') {
+      setTranslatedHeadings({
+        summary: 'Summary',
+        why: 'Why it Matters',
+        takeaways: 'Key Takeaways',
+      });
+      setTranslatedUpskill(upskill);
+    } else {
+      try {
+        const [summary, why, takeaways] = await Promise.all([
+          translateText('Summary', language),
+          translateText('Why it Matters', language),
+          translateText('Key Takeaways', language),
+        ]);
+
+        const bulletPoints = upskill.split(/\n|•|\.|-/).filter(Boolean);
+
+        const translatedPoints = await Promise.all(
+          bulletPoints.map((point) =>
+            translateText(point.trim(), language)
+          )
+        );
+
+        if (isMounted) {
+          setTranslatedHeadings({ summary, why, takeaways });
+          setTranslatedUpskill(translatedPoints as string[]);
+        }
+      } catch (error) {
+        console.error('Translation failed:', error);
+        if (isMounted) {
+          setTranslatedUpskill(upskill); // fallback to English
+        }
+      }
+    }
+  }
+
+  doTranslate();
+
+  return () => {
+    isMounted = false;
+  };
+}, [language, upskill]);
+
 
   // Theme-aware colors
   const colors = theme === 'dark'
@@ -100,8 +155,8 @@ export default function NewsCard({
         title: '#c4fca4',
       }
     : {
-        card: '#fff',
-        section: '#f5f8ff',
+        card: '#f5f8ff', // changed from #fff to a modern card shade
+        section: '#fff',
         border: '#e0e7ff',
         text: '#222b45',
         heading: '#1c1c40', // dark for light mode
@@ -169,7 +224,7 @@ export default function NewsCard({
             style={styles.sectionGradient}
           >
             <View style={[styles.sectionCard, { backgroundColor: colors.section, borderColor: colors.border }]}>
-              <Text style={[styles.heading, { color: colors.heading }]}>📌 Summary</Text>
+              <Text style={[styles.heading, { color: colors.heading }]}>📌 {translatedHeadings.summary}</Text>
               <Text style={[styles.text, { color: colors.text }]}>
                 {displaySummary}
                 {truncated && (
@@ -190,7 +245,7 @@ export default function NewsCard({
             style={styles.sectionGradient}
           >
             <View style={[styles.sectionCard, { backgroundColor: colors.section, borderColor: colors.border }]}>
-              <Text style={[styles.heading, { color: colors.heading }]}>💡 Why It Matters</Text>
+              <Text style={[styles.heading, { color: colors.heading }]}>💡 {translatedHeadings.why}</Text>
               <Text style={[styles.text, { color: colors.text }]}>{why}</Text>
             </View>
           </LinearGradient>
@@ -204,15 +259,15 @@ export default function NewsCard({
             style={styles.sectionGradient}
           >
             <View style={[styles.sectionCard, { backgroundColor: colors.section, borderColor: colors.border }]}>
-              <Text style={[styles.heading, { color: colors.heading }]}>📈 Key Takeaways</Text>
-              {Array.isArray(upskill)
-                ? upskill.map((point, idx) => (
+              <Text style={[styles.heading, { color: colors.heading }]}>📈 {translatedHeadings.takeaways}</Text>
+              {Array.isArray(translatedUpskill)
+                ? translatedUpskill.map((point, idx) => (
                     <View key={idx} style={styles.bulletRow}>
                       <MaterialIcons name="check-circle" size={16} color={colors.icon} style={{ marginRight: 6 }} />
                       <Text style={[styles.text, { flex: 1, color: colors.text }]}>{point}</Text>
                     </View>
                   ))
-                : upskill.split(/\n|\.|•/).filter(Boolean).map((point, idx) => (
+                : translatedUpskill.split(/\n|\.|•/).filter(Boolean).map((point, idx) => (
                     <View key={idx} style={styles.bulletRow}>
                       <MaterialIcons name="check-circle" size={16} color={colors.icon} style={{ marginRight: 6 }} />
                       <Text style={[styles.text, { flex: 1, color: colors.text }]}>{point.trim()}</Text>
@@ -229,16 +284,15 @@ export default function NewsCard({
             accessibilityLabel={youtube.title ? `Watch YouTube video: ${youtube.title}` : 'Watch YouTube video'}
           >
             <View style={styles.thumbnailButton}>
-              <Image
-                source={{ uri: `https://img.youtube.com/vi/${extractYouTubeID(youtube.url)}/hqdefault.jpg` }}
-                style={styles.youtubeThumbnailSmall}
-              />
-              <View style={styles.playOverlay} pointerEvents="none">
-                <MaterialIcons name="play-circle-fill" size={44} color="#fff" style={{ opacity: 0.95 }} />
+              <View style={styles.youtubeLogo}>
+                <View style={styles.youtubePlayButton}>
+                  <View style={styles.playTriangle} />
+                </View>
               </View>
             </View>
             <View style={styles.watchTextWrapper}>
-              <Text style={styles.watchText}>▶ Watch AI Recommended Video</Text>
+              <Text style={styles.watchText}>Watch AI Recommended Video</Text>
+              <Text style={styles.youtubeSubtext}>on YouTube</Text>
             </View>
           </Pressable>
         )}
@@ -287,33 +341,36 @@ const styles = StyleSheet.create({
     elevation: 10,
     width: width,
     height: screenHeight - 80,
-    marginTop: 28,
+    marginTop: 16, // reduced from 28
     alignSelf: 'center',
     borderWidth: 0.5,
     borderColor: '#e0e7ff',
   },
-  headerWrapper: {
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    overflow: 'hidden',
-  },
-  headerImage: {
-    width: '100%',
-    height: 110,
-    resizeMode: 'cover',
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-    marginTop:0,
-  },
-  headerGradient: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    height: 110,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
-  },
+headerWrapper: {
+  borderTopLeftRadius: 20,
+  borderTopRightRadius: 20,
+  overflow: 'hidden',
+  marginTop: 38, // move image slightly down
+  marginHorizontal: 5, // add space on left & right
+  marginBottom: 2, // reduce space below image
+},
+headerImage: {
+  width: '100%',
+  height: 110,
+  resizeMode: 'cover',
+  borderTopLeftRadius: 20,
+  borderTopRightRadius: 20,
+},
+headerGradient: {
+  position: 'absolute',
+  left: 0,
+  right: 0,
+  top: 0,
+  height: 110,
+  borderTopLeftRadius: 20,
+  borderTopRightRadius: 20,
+},
+
   noImage: {
     height: 90,
     justifyContent: 'center',
@@ -329,8 +386,8 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 12,
-    paddingTop: 10,
+    padding: 10,
+    paddingTop: 12, // was 28
   },
   title: {
     fontSize: 21,
@@ -358,18 +415,18 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   sectionGradientWrapper: {
-    marginBottom: 8,
+    marginBottom: 1.5, // was 4
     borderRadius: 12,
   },
   sectionGradient: {
     borderRadius: 12,
-    padding: 1.5,
+    padding: 1, // reduced from 1.5
   },
   sectionCard: {
     backgroundColor: '#fff',
     borderRadius: 8,
-    padding: 10,
-    minHeight: 40,
+    padding: 7, // reduced from 10
+    minHeight: 32, // reduced from 40
     shadowColor: '#4c68ff',
     shadowOpacity: 0.03,
     shadowRadius: 2,
@@ -383,7 +440,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.15,
   },
   text: {
-    fontSize: 12,
+    fontSize: 13,
     color: '#222b45',
     lineHeight: 20, // ↓ slightly reduced line height
     fontWeight: '500',
@@ -403,8 +460,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 6,
-    marginBottom: 6,
+    marginTop: 2, // reduced from 6
+    marginBottom: 2, // reduced from 6
   },
   animatedWrapper: {
     borderRadius: 14,
@@ -452,54 +509,86 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: '700',
   },
-  youtubeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 1,
-    marginBottom: 8,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 4,
-    shadowColor: '#4c68ff',
-    shadowOpacity: 0.03,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  thumbnailButton: {
-    width: 100,
-    height: 56,
-    borderRadius: 8,
-    overflow: 'hidden',
-    position: 'relative',
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: '#e0e7ff',
-  },
-  youtubeThumbnailSmall: {
-    width: '100%',
-    height: '100%',
-    resizeMode: 'cover',
-    borderRadius: 8,
-  },
-  playOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(76,104,255,0.13)',
-  },
-  watchTextWrapper: {
-    flex: 1,
-    justifyContent: 'center',
-  },
-  watchText: {
-    fontSize: 12,
-    fontWeight: 'bold',
-    color: '#4c68ff',
-    marginBottom: 4,
-  },
+youtubeRow: {
+  flexDirection: 'row',
+  alignItems: 'center',
+  backgroundColor: '#f5f8ff', // modern card shade
+  padding: 1,
+  borderRadius: 14,
+  marginTop: 7,
+  marginBottom: 6.5,
+  shadowColor: '#000',
+  shadowOpacity: 0.05,
+  shadowRadius: 6,
+  shadowOffset: { width: 0, height: 3 },
+  elevation: 3,
+  borderWidth: 1,
+  borderColor: '#e0e7ff',
+},
 
+thumbnailButton: {
+  width: 70,
+  height: 42,
+  borderRadius: 12,
+  overflow: 'hidden',
+  marginRight: 12,
+  position: 'relative',
+  backgroundColor: '#FF0000', // YouTube red
+  justifyContent: 'center',
+  alignItems: 'center',
+  marginLeft: 2, // add space on left
+},
+
+youtubeLogo: {
+  width: '100%',
+  height: '100%',
+  justifyContent: 'center',
+  alignItems: 'center',
+  backgroundColor: '#FF0000',
+},
+
+youtubePlayButton: {
+  width: 28,
+  height: 20,
+  backgroundColor: 'white',
+  borderRadius: 6,
+  justifyContent: 'center',
+  alignItems: 'center',
+  position: 'relative',
+},
+
+playTriangle: {
+  width: 0,
+  height: 0,
+  backgroundColor: 'transparent',
+  borderStyle: 'solid',
+  borderLeftWidth: 8,
+  borderRightWidth: 8,
+  borderBottomWidth: 12,
+  borderLeftColor: 'transparent',
+  borderRightColor: 'transparent',
+  borderBottomColor: '#FF0000',
+  transform: [{ rotate: '90deg' }],
+  marginLeft: 2,
+},
+
+watchTextWrapper: {
+  flex: 1,
+  justifyContent: 'center',
+},
+
+watchText: {
+  fontSize: 14,
+  fontWeight: '700',
+  color: '#4c68ff',
+  letterSpacing: 0.3,
+  marginBottom: 2,
+},
+
+youtubeSubtext: {
+  fontSize: 12,
+  color: '#666',
+  letterSpacing: 0.2,
+  fontWeight: '500',
+},
 });
