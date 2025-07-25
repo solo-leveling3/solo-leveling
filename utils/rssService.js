@@ -2,6 +2,7 @@ import Parser from "rss-parser";
 import { summarizeArticle } from "../services/summarizeService.js";
 import { db } from "../config/firebase.js";
 import { getRelatedImage, getFallbackTechImage } from "../services/unsplashService.js";
+import { ContentFilterService } from "../services/contentFilterService.js";
 import admin from 'firebase-admin';
 
 // Cache to store previously fetched feed items
@@ -27,87 +28,126 @@ const parser = new Parser({
   }
 });
 
-export async function getFeedItem(rssUrl, saveToDb = true) {
+export async function getFeedItem(rssUrl, saveToDb = true, returnMultiple = false) {
   try {
     console.log(`📰 Fetching RSS feed from: ${rssUrl}`);
     const feed = await parser.parseURL(rssUrl);
     
     if (!feed?.items?.length) {
       console.warn('⚠️ No items found in feed');
-      return null;
+      return returnMultiple ? [] : null;
     }
 
-    // Get the most recent items (top 5) and find one that's not too recent in our system
-    const recentItems = feed.items.slice(0, 5);
+    // Get more items to filter through (top 20 for better selection)
+    const recentItems = feed.items.slice(0, 20);
     console.log(`📊 Found ${recentItems.length} recent items in feed`);
 
-    // Try to find a good item that's not recently processed
-    let selectedItem = null;
+    // Apply content filtering to all recent items
+    const filteredItems = [];
     
     for (const item of recentItems) {
+      // Check if item was processed recently
       const isProcessedRecently = await isItemRecentlyProcessed(item);
       
-      if (!isProcessedRecently) {
-        selectedItem = item;
-        console.log(`✅ Selected item: "${item.title}"`);
-        break;
-      } else {
+      if (isProcessedRecently) {
         console.log(`⏩ Skipping recently processed: "${item.title}"`);
+        continue;
       }
-    }
 
-    // If all recent items were processed, take the newest one anyway
-    if (!selectedItem) {
-      selectedItem = recentItems[0];
-      console.log(`🔄 Using newest item (no unprocessed found): "${selectedItem.title}"`);
-    }
+      // Apply content filter
+      const articleData = {
+        title: item.title ?? "",
+        contentSnippet: item.contentSnippet ?? item.content ?? "",
+        content: item.content ?? "",
+        feedTitle: feed.title ?? "Unknown Source",
+        link: item.link ?? ""
+      };
 
-    // Try to extract image from RSS first
-    let imageUrl = extractImageUrl(selectedItem);
-    
-    // If no image found in RSS, get one from Unsplash
-    if (!imageUrl) {
-      console.log('🔍 No image in RSS feed, searching Unsplash...');
-      imageUrl = await getRelatedImage(
-        selectedItem.title, 
-        selectedItem.contentSnippet || selectedItem.content
-      );
+      const filterResult = ContentFilterService.filterTechContent(articleData);
       
-      // If still no image, get a fallback tech image
-      if (!imageUrl) {
-        console.log('🔄 Getting fallback tech image...');
-        imageUrl = await getFallbackTechImage();
+      console.log(`🔍 Content filter for "${item.title}":`, {
+        confidence: filterResult.confidence,
+        isTechRelated: filterResult.isTechRelated,
+        score: filterResult.score
+      });
+
+      // Only include items that pass the tech filter (60% confidence minimum)
+      if (filterResult.isTechRelated && filterResult.confidence >= 60) {
+        // Try to extract image from RSS first
+        let imageUrl = extractImageUrl(item);
+        
+        // If no image found in RSS, get one from Unsplash
+        if (!imageUrl) {
+          console.log('🔍 No image in RSS feed, searching Unsplash...');
+          imageUrl = await getRelatedImage(
+            item.title, 
+            item.contentSnippet || item.content
+          );
+          
+          // If still no image, get a fallback tech image
+          if (!imageUrl) {
+            console.log('🔄 Getting fallback tech image...');
+            imageUrl = await getFallbackTechImage();
+          }
+        }
+
+        const processedArticle = {
+          title: item.title ?? "",
+          contentSnippet: item.contentSnippet ?? item.content ?? "",
+          link: item.link ?? "",
+          content: item.content ?? "",
+          pubDate: item.pubDate ?? new Date().toISOString(),
+          image: imageUrl,
+          imageSource: imageUrl ? (extractImageUrl(item) ? 'rss' : 'unsplash') : null,
+          feedTitle: feed.title ?? "Unknown Source",
+          sourceUrl: rssUrl,
+          techFilter: filterResult // Include filter results for debugging
+        };
+
+        // Add to cache with current timestamp
+        addToCache(item);
+
+        filteredItems.push(processedArticle);
+        
+        console.log(`✅ High-confidence tech article: "${item.title}" (${filterResult.confidence}% confidence)`);
+        if (imageUrl) {
+          console.log(`🖼️ Image found (${processedArticle.imageSource}): ${imageUrl}`);
+        }
+
+        // If we only need one item and found a good one, break
+        if (!returnMultiple) {
+          break;
+        }
+      } else {
+        console.log(`❌ Article filtered out: "${item.title}" (${filterResult.confidence}% confidence, reasons: ${filterResult.reasons.join(', ')})`);
       }
     }
-    
-    const articleData = {
-      title: selectedItem.title ?? "",
-      contentSnippet: selectedItem.contentSnippet ?? selectedItem.content ?? "",
-      link: selectedItem.link ?? "",
-      content: selectedItem.content ?? "",
-      pubDate: selectedItem.pubDate ?? new Date().toISOString(),
-      image: imageUrl,
-      imageSource: imageUrl ? (extractImageUrl(selectedItem) ? 'rss' : 'unsplash') : null,
-      feedTitle: feed.title ?? "Unknown Source",
-      sourceUrl: rssUrl
-    };
-    
-    // Add to cache with current timestamp
-    addToCache(selectedItem);
 
-    console.log(`✅ Successfully processed article: "${selectedItem.title}"`);
-    if (imageUrl) {
-      console.log(`🖼️ Image found (${articleData.imageSource}): ${imageUrl}`);
+    // Return results based on returnMultiple flag
+    if (returnMultiple) {
+      // Sort by confidence (highest first) and return all qualifying items
+      const sortedItems = filteredItems.sort((a, b) => b.techFilter.confidence - a.techFilter.confidence);
+      console.log(`📊 Returning ${sortedItems.length} high-confidence tech articles`);
+      return sortedItems;
+    } else {
+      // Return the single best item or null if none qualify
+      if (filteredItems.length > 0) {
+        const bestItem = filteredItems.sort((a, b) => b.techFilter.confidence - a.techFilter.confidence)[0];
+        console.log(`✅ Successfully processed best tech article: "${bestItem.title}" (${bestItem.techFilter.confidence}% confidence)`);
+        return bestItem;
+      } else {
+        console.warn('⚠️ No tech articles found that meet the 60% confidence threshold');
+        return null;
+      }
     }
 
-    return articleData;
   } catch (error) {
     console.error('❌ RSS Feed error:', {
       message: error.message,
       code: error.code,
       url: rssUrl
     });
-    return null;
+    return returnMultiple ? [] : null;
   }
 }
 
@@ -293,6 +333,42 @@ function extractImageUrl(item) {
 }
 
 // Export additional functions for database management using Admin SDK
+export async function getAllHighConfidenceArticles(rssUrls, minConfidence = 60) {
+  const allArticles = [];
+  
+  console.log(`🔍 Fetching high-confidence tech articles from ${rssUrls.length} RSS feeds...`);
+  
+  for (const rssUrl of rssUrls) {
+    try {
+      console.log(`\n📰 Processing feed: ${rssUrl}`);
+      const articles = await getFeedItem(rssUrl, false, true); // returnMultiple = true, saveToDb = false
+      
+      if (articles && articles.length > 0) {
+        // Filter articles that meet minimum confidence
+        const highConfidenceArticles = articles.filter(article => 
+          article.techFilter && article.techFilter.confidence >= minConfidence
+        );
+        
+        allArticles.push(...highConfidenceArticles);
+        console.log(`✅ Added ${highConfidenceArticles.length} high-confidence articles from this feed`);
+      } else {
+        console.log(`⚠️ No qualifying articles found in this feed`);
+      }
+    } catch (error) {
+      console.error(`❌ Error processing feed ${rssUrl}:`, error.message);
+      continue; // Continue with next feed
+    }
+  }
+  
+  // Sort all articles by confidence (highest first)
+  const sortedArticles = allArticles.sort((a, b) => b.techFilter.confidence - a.techFilter.confidence);
+  
+  console.log(`\n📊 Total high-confidence tech articles found: ${sortedArticles.length}`);
+  console.log(`🎯 Average confidence: ${Math.round(sortedArticles.reduce((sum, article) => sum + article.techFilter.confidence, 0) / sortedArticles.length)}%`);
+  
+  return sortedArticles;
+}
+
 export async function getAllArticles() {
   try {
     if (!db) {

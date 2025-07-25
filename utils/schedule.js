@@ -1,4 +1,4 @@
-import { getFeedItem } from "./rssService.js";
+import { getFeedItem, getAllHighConfidenceArticles } from "./rssService.js";
 import { summarizeArticle, generateLessonContent } from "../services/summarizeService.js";
 import { getRelatedYouTubeVideo } from "../services/enhancedYoutubeService.js"; // Changed import
 import { storeFeed } from '../services/firestoreService.js';
@@ -33,10 +33,22 @@ async function updateFeed() {
 
         const rssItem = await getFeedItem(url);
         if (!rssItem) {
-            throw new Error(`No items found in feed: ${name}`);
+            throw new Error(`No qualifying tech articles found in feed: ${name}`);
         }
 
-        console.log('📝 Generating content for article...');
+        // Log content filter results
+        if (rssItem.techFilter) {
+            console.log(`🎯 Content Filter Results:`);
+            console.log(`   Confidence: ${rssItem.techFilter.confidence}%`);
+            console.log(`   Score: ${rssItem.techFilter.score}`);
+            console.log(`   Tech Keywords: ${rssItem.techFilter.keywords.tech.join(', ')}`);
+            if (rssItem.techFilter.keywords.companies.length > 0) {
+                console.log(`   Companies: ${rssItem.techFilter.keywords.companies.join(', ')}`);
+            }
+            console.log(`   Filter Reasons: ${rssItem.techFilter.reasons.join(', ')}`);
+        }
+
+        console.log('📝 Generating content for filtered tech article...');
 
         // Generate summary, lesson content, and enhanced YouTube video
         const [summary, lessonContent, youtube] = await Promise.all([
@@ -62,7 +74,8 @@ async function updateFeed() {
             imageSource: rssItem.imageSource,
             content: rssItem.content || rssItem.contentSnippet || "",
             source: name,
-            lastUpdated: new Date().toISOString()
+            lastUpdated: new Date().toISOString(),
+            techFilter: rssItem.techFilter // Include filter metadata
         };
 
         // Store in cache
@@ -72,7 +85,7 @@ async function updateFeed() {
         // Store in Firestore
         await storeFeed(feedData);
 
-        console.log(`✅ Updated feed from ${name} with enhanced YouTube video`);
+        console.log(`✅ Updated feed from ${name} with filtered tech content (${rssItem.techFilter?.confidence}% confidence)`);
         if (youtube?.source) {
             console.log(`🎥 YouTube source: ${youtube.source} - ${youtube.title}`);
         }
@@ -98,4 +111,23 @@ export function initializeScheduler() {
 // Get current feed data
 export function getCurrentFeed() {
     return feedCache.currentFeed;
+}
+
+// New function to get multiple high-confidence tech articles from all feeds
+export async function getHighConfidenceTechArticles(limit = 10, minConfidence = 70) {
+    console.log(`🔍 Fetching ${limit} high-confidence tech articles (min ${minConfidence}% confidence)...`);
+    
+    try {
+        const feedUrls = Object.values(RSS_FEEDS);
+        const articles = await getAllHighConfidenceArticles(feedUrls, minConfidence);
+        
+        // Return the top articles limited by the specified amount
+        const topArticles = articles.slice(0, limit);
+        
+        console.log(`✅ Found ${topArticles.length} high-confidence tech articles`);
+        return topArticles;
+    } catch (error) {
+        console.error('❌ Error fetching high-confidence articles:', error);
+        return [];
+    }
 }
