@@ -1,0 +1,48 @@
+export default {
+  common: {
+    loading: 'Loading...',
+    error: 'Error',
+    retry: 'Retry',
+    settings: 'App Settings',
+    comingSoon: 'More coming soon...',
+    exploreAiTools: 'Explore AI Tools',
+    checkConnection: 'Please check your internet connection and try again.',
+  },
+  profile: {
+    selectLanguage: '🌐 Select Language',
+    selectTheme: '🎨 Select Theme',
+    lightMode: 'Light Mode',
+    darkMode: 'Dark Mode',
+    language: {
+      en: 'English',
+      hi: 'Hindi (हिंदी)',
+      te: 'Telugu (తెలుగు)',
+    },
+  },
+  feed: {
+    noArticles: 'No articles available',
+    failedToFetch: 'Failed to fetch articles',
+    whyMatters: '💡 Why It Matters',
+    keyTakeaways: '📈 Key Takeaways',
+    readMore: 'Read more',
+    showLess: 'Show less',
+    noInsight: 'No insight available yet.',
+    noUpskill: 'No upskill advice yet.',
+    readLater: 'Read Later',
+    share: 'Share',
+    summary: '📌 Summary',
+    noImage: 'No Image',
+    watchVideo: '▶ Watch AI Recommended Video',
+    readAiSummary: '✨ Read AI Summary',
+  },
+  saved: {
+    noSavedArticles: 'No saved articles',
+    removeFromSaved: 'Remove from saved',
+    savedOn: 'Saved on',
+  },
+  navigation: {
+    feed: 'Feed',
+    saved: 'Saved',
+    profile: 'Profile',
+  },
+};
