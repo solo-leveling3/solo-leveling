@@ -14,8 +14,15 @@ export default function SavedScreen() {
   const handleToggleSave = (articleId: string) => {
     if (isArticleSaved(articleId)) {
       removeSavedArticle(articleId);
-    } else if (openArticle) {
-      saveArticle({ ...openArticle, savedAt: Date.now() });
+      if (openArticle && openArticle.id === articleId) {
+        // Update the openArticle state to reflect unsaved state
+        setOpenArticle({ ...openArticle });
+      }
+    } else {
+      // Re-save the article with current timestamp
+      if (openArticle && openArticle.id === articleId) {
+        saveArticle({ ...openArticle, savedAt: Date.now() });
+      }
     }
   };
 
