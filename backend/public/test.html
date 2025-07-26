@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tech2News Feed Tester</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f0f2f5;
+        }
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .feed-card {
+            background: white;
+            padding: 20px;
+            margin: 10px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .language-selector {
+            padding: 8px;
+            margin-right: 10px;
+        }
+        .refresh-btn {
+            padding: 8px 16px;
+            background: #1a73e8;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .refresh-btn:hover {
+            background: #1557b0;
+        }
+        .youtube-section {
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        .thumbnail {
+            max-width: 200px;
+            border-radius: 4px;
+        }
+        .timestamp {
+            color: #666;
+            font-size: 0.9em;
+        }
+        .source-badge {
+            background: #e8f0fe;
+            color: #1a73e8;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="controls">
+        <button onclick="fetchFeeds()" class="refresh-btn">Refresh Feeds</button>
+    </div>
+    <div id="feedContainer"></div>
+
+    <script>
+        async function fetchFeeds() {
+            const container = document.getElementById('feedContainer');
+            container.innerHTML = '<div class="feed-card">Loading...</div>';
+
+            try {
+                const response = await fetch('/api/content');
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+
+                container.innerHTML = '';
+                if (Array.isArray(data) && data.length > 0) {
+                    data.forEach(renderFeedCard);
+                } else if (data) {
+                    renderFeedCard(data);
+                } else {
+                    showError('No feeds available.');
+                }
+            } catch (error) {
+                console.error('Feed fetch error:', error);
+                showError(error.message);
+            }
+        }
+
+        function renderFeedCard(feed) {
+            const feedCard = document.createElement('div');
+            feedCard.className = 'feed-card';
+            
+            const timestamp = feed.timestamp ? new Date(feed.timestamp).toLocaleString() : 'N/A';
+            
+            feedCard.innerHTML = `
+                <span class="source-badge">${sanitizeHTML(feed.source || 'Unknown')}</span>
+                <span class="timestamp">Updated: ${timestamp}</span>
+                <h2>${sanitizeHTML(feed.title || 'No Title')}</h2>
+                <p>${sanitizeHTML(feed.summary || feed.content || 'No content available')}</p>
+                ${feed.youtube ? renderYouTubeSection(feed.youtube) : ''}
+                ${feed.link ? `<p><a href="${sanitizeHTML(feed.link)}" target="_blank" rel="noopener noreferrer">Read full article</a></p>` : ''}
+            `;
+            
+            document.getElementById('feedContainer').appendChild(feedCard);
+        }
+
+        function renderYouTubeSection(youtube) {
+            return `
+                <div class="youtube-section">
+                    <img src="${sanitizeHTML(youtube.thumbnail)}" alt="Video thumbnail" class="thumbnail">
+                    <a href="${sanitizeHTML(youtube.url)}" target="_blank" rel="noopener noreferrer">Watch related video</a>
+                </div>
+            `;
+        }
+
+        function showError(message) {
+            document.getElementById('feedContainer').innerHTML = `
+                <div class="feed-card">
+                    <p style="color: red;">Error: ${sanitizeHTML(message)}</p>
+                </div>
+            `;
+        }
+
+        function sanitizeHTML(str) {
+            if (!str) return '';
+            return str.toString()
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        // Load feeds when page loads
+        fetchFeeds();
+    </script>
+</body>
+</html>
