@@ -28,13 +28,16 @@ export default function VerticalSwiper({ data }: VerticalSwiperProps) {
   return (
     <AnimatedFlatList
       data={data}
-      keyExtractor={(item: SwiperItem) => item.id}
-      renderItem={({ item }: { item: SwiperItem }) => (
-        <View style={styles.card}>
-          <Text style={styles.title}>{item.title}</Text>
-          <Text style={styles.summary}>{item.summary}</Text>
-        </View>
-      )}
+      keyExtractor={(item) => (item as SwiperItem).id}
+      renderItem={({ item }) => {
+        const swiperItem = item as SwiperItem;
+        return (
+          <View style={styles.card}>
+            <Text style={styles.title}>{swiperItem.title}</Text>
+            <Text style={styles.summary}>{swiperItem.summary}</Text>
+          </View>
+        );
+      }}
       pagingEnabled
       showsVerticalScrollIndicator={false}
       onScroll={onScroll}

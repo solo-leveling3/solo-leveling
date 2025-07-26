@@ -1,65 +1,60 @@
 import NewsCard from '@/components/ui/NewsCard';
+import SavedCard from '@/components/ui/SavedCard';
 import type { SavedArticle } from '@/contexts/AppContext';
 import { useAppContext } from '@/contexts/AppContext';
 import React from 'react';
-import { Dimensions, FlatList, StyleSheet, Text, View } from 'react-native';
+import { Dimensions, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
 const { height } = Dimensions.get('window');
 
 export default function SavedScreen() {
-  const { savedArticles, removeSavedArticle, isArticleSaved } = useAppContext();
+  const { savedArticles, removeSavedArticle, saveArticle, isArticleSaved, theme } = useAppContext();
+  const [openArticle, setOpenArticle] = React.useState<SavedArticle | null>(null);
 
   const handleToggleSave = (articleId: string) => {
-    removeSavedArticle(articleId);
+    if (isArticleSaved(articleId)) {
+      removeSavedArticle(articleId);
+      if (openArticle && openArticle.id === articleId) {
+        // Update the openArticle state to reflect unsaved state
+        setOpenArticle({ ...openArticle });
+      }
+    } else {
+      // Re-save the article with current timestamp
+      if (openArticle && openArticle.id === articleId) {
+        saveArticle({ ...openArticle, savedAt: Date.now() });
+      }
+    }
   };
 
   const renderSavedArticle = ({ item, index }: { item: SavedArticle; index: number }) => {
-    const savedDate = new Date(item.savedAt);
-    const formattedDate = savedDate.toLocaleDateString() + ' ' + savedDate.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    // Alternate card styles
-    const cardBg = index % 2 === 0 ? '#f8faff' : '#f3f4f8';
-    const borderColor = index % 2 === 0 ? '#4c68ff' : '#a084ee';
     return (
-      <View style={[styles.cardContainer, { backgroundColor: cardBg, borderLeftColor: borderColor, borderLeftWidth: 5, shadowColor: borderColor }]}> 
-        <View style={styles.timestampContainer}>
-          <Text style={[styles.timestampText, { color: borderColor, fontWeight: '700', fontStyle: 'normal' }]}>Saved on {formattedDate}</Text>
-        </View>
-        <NewsCard
-          title={item.title}
-          summary={item.summary}
-          why={item.why}
-          upskill={item.upskill}
-          sourceUrl={item.sourceUrl}
-          image={item.image}
-          isSaved={isArticleSaved(item.id)}
-          onToggleSave={() => handleToggleSave(item.id)}
-          // Provide undefined for optional props
-          youtube={undefined}
-          likeCount={0}
-          dislikeCount={0}
-          onLike={undefined}
-          onDislike={undefined}
-          style={{ margin: 0, borderRadius: 16, boxShadow: '0 2px 8px rgba(76,104,255,0.07)' }}
-        />
-      </View>
+      <SavedCard
+        title={item.title}
+        summary={item.summary}
+        image={item.image}
+        savedAt={item.savedAt}
+        onRemove={() => handleToggleSave(item.id)}
+        onPress={() => setOpenArticle(item)}
+        theme={theme}
+      />
     );
   };
 
   if (savedArticles.length === 0) {
     return (
-      <View style={styles.container}>
+      <View style={[styles.container, theme === 'dark' && { backgroundColor: '#181a20' }]}>
         <View style={styles.centerContent}>
           <Text style={styles.icon}>🔖</Text>
-          <Text style={styles.title}>Saved News</Text>
-          <Text style={styles.text}>Your bookmarked news will appear here.</Text>
+          <Text style={[styles.title, theme === 'dark' && { color: '#f3f4f8' }]}>Saved News</Text>
+          <Text style={[styles.text, theme === 'dark' && { color: '#aaa' }]}>Your bookmarked news will appear here.</Text>
         </View>
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.headerTitle}>Saved Articles ({savedArticles.length})</Text>
+    <View style={[styles.container, theme === 'dark' && { backgroundColor: '#181a20' }]}>
+      <Text style={[styles.headerTitle, theme === 'dark' && { color: '#f3f4f8' }]}>Saved Articles ({savedArticles.length})</Text>
       <FlatList<SavedArticle>
         data={[...savedArticles].sort((a, b) => b.savedAt - a.savedAt)} // Sort by most recent first
         renderItem={({ item, index }) => renderSavedArticle({ item, index })}
@@ -67,6 +62,24 @@ export default function SavedScreen() {
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.listContent}
       />
+      <Modal visible={!!openArticle} animationType="slide" onRequestClose={() => setOpenArticle(null)}>
+        {openArticle && (
+          <NewsCard
+            title={openArticle.title}
+            summary={openArticle.summary}
+            why={openArticle.why}
+            upskill={openArticle.upskill}
+            sourceUrl={openArticle.sourceUrl}
+            image={openArticle.image}
+            isSaved={isArticleSaved(openArticle.id)}
+            onToggleSave={() => handleToggleSave(openArticle.id)}
+            timestamp={openArticle.savedAt}
+          />
+        )}
+        <Pressable onPress={() => setOpenArticle(null)} style={{ position: 'absolute', top: 40, right: 20, backgroundColor: theme === 'dark' ? '#23262f' : '#fff', borderRadius: 20, padding: 10, elevation: 4 }}>
+          <Text style={{ fontWeight: 'bold', color: theme === 'dark' ? '#a084ee' : '#4c68ff' }}>Close</Text>
+        </Pressable>
+      </Modal>
     </View>
   );
 }
@@ -74,7 +87,7 @@ export default function SavedScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: '#fff', // overridden inline for dark
     paddingHorizontal: 20,
   },
   centerContent: {
@@ -125,7 +138,7 @@ const styles = StyleSheet.create({
   },
   text: {
     fontSize: 16,
-    color: '#555',
+    color: '#555', // overridden inline for dark
     textAlign: 'center',
   },
 });

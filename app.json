@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "GoAhead",
-    "slug": "GoAhead",
+    "name": "TechNx",
+    "slug": "TechNx",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
-    "scheme": "GoAhead",
+    "icon": "./assets/images/logo.png",
+    "scheme": "TechNx",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
