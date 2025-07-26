@@ -1,12 +1,18 @@
 import { aiTools } from '@/constants/aiTools';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 export default function AiToolsSection() {
+  const router = useRouter();
   return (
     <LinearGradient colors={['#f3f4f8', '#e5ecf9']} style={styles.gradient}>
       <ScrollView contentContainerStyle={styles.container}>
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
+          <Ionicons name="arrow-back" size={22} color="#007bff" />
+          <Text style={styles.backText}>Back</Text>
+        </Pressable>
         <Text style={styles.title}>🚀 All Popular AI Tools</Text>
         <View style={styles.toolsGrid}>
           {aiTools.map((tool, index) => (
@@ -35,6 +41,22 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
   // backButton and backText styles removed
+  backButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    marginBottom: 18,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
+    backgroundColor: '#e0e7ff',
+  },
+  backText: {
+    marginLeft: 6,
+    fontSize: 16,
+    color: '#007bff',
+    fontWeight: '500',
+  },
   title: {
     fontSize: 28,
     fontWeight: 'bold',

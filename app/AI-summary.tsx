@@ -1,8 +1,9 @@
 import { useAppContext } from '@/contexts/AppContext';
 import { translateText } from '@/lib/translate';
-import { useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Dimensions, Image, ScrollView, StyleProp, StyleSheet, Text, TextStyle, useColorScheme, View, ViewStyle } from 'react-native';
+import { Dimensions, Image, Pressable, ScrollView, StyleProp, StyleSheet, Text, TextStyle, useColorScheme, View, ViewStyle } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
@@ -13,6 +14,7 @@ export default function AISummaryScreen() {
   const [translatedContent, setTranslatedContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const lessonText = typeof content === 'string' ? content : '';
+  const router = useRouter();
 
   useEffect(() => {
     let isMounted = true;
@@ -70,6 +72,10 @@ export default function AISummaryScreen() {
       ]}
       showsVerticalScrollIndicator={false}
     >
+      <Pressable style={styles.backButton} onPress={() => router.back()}>
+        <Ionicons name="arrow-back" size={22} color={colorScheme === 'dark' ? '#ADD6FF' : '#007bff'} />
+        <Text style={[styles.backButtonText, colorScheme === 'dark' && { color: '#ADD6FF' }]}>Back</Text>
+      </Pressable>
       {typeof image === 'string' && image.length > 0 && (
         <View style={styles.imageContainer}>
           <Image source={{ uri: image }} style={styles.image} />

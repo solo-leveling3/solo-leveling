@@ -1,7 +1,7 @@
-import { useEffect } from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import Animated, { FadeInDown, useSharedValue, useAnimatedStyle, withTiming } from 'react-native-reanimated';
+import { useEffect } from 'react';
+import { StyleSheet, View } from 'react-native';
+import Animated, { FadeInDown, useAnimatedStyle, useSharedValue, withTiming } from 'react-native-reanimated';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -10,7 +10,7 @@ export default function HomeScreen() {
   useEffect(() => {
     const timer = setTimeout(() => {
       router.replace('/feed');
-    }, 2000); // 2 seconds
+    }, 3000); // 3 seconds
 
     // Start zoom out animation
     scale.value = withTiming(1, { duration: 1000 });
@@ -46,8 +46,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   logo: {
-    width: 180,
-    height: 140,
+    width: 200,
+    height: 160,
     marginBottom: 16,
   },
   title: {
