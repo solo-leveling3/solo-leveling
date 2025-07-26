@@ -8,11 +8,15 @@ import { Dimensions, FlatList, Modal, Pressable, StyleSheet, Text, View } from '
 const { height } = Dimensions.get('window');
 
 export default function SavedScreen() {
-  const { savedArticles, removeSavedArticle, isArticleSaved, theme } = useAppContext();
+  const { savedArticles, removeSavedArticle, saveArticle, isArticleSaved, theme } = useAppContext();
   const [openArticle, setOpenArticle] = React.useState<SavedArticle | null>(null);
 
   const handleToggleSave = (articleId: string) => {
-    removeSavedArticle(articleId);
+    if (isArticleSaved(articleId)) {
+      removeSavedArticle(articleId);
+    } else if (openArticle) {
+      saveArticle({ ...openArticle, savedAt: Date.now() });
+    }
   };
 
   const renderSavedArticle = ({ item, index }: { item: SavedArticle; index: number }) => {

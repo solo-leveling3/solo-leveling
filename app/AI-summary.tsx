@@ -1,13 +1,12 @@
 import { useAppContext } from '@/contexts/AppContext';
 import { translateText } from '@/lib/translate';
-import { Ionicons } from '@expo/vector-icons';
-import { router, useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Dimensions, Image, Pressable, ScrollView, StyleProp, StyleSheet, Text, TextStyle, useColorScheme, View, ViewStyle } from 'react-native';
+import { Dimensions, Image, ScrollView, StyleProp, StyleSheet, Text, TextStyle, useColorScheme, View, ViewStyle } from 'react-native';
 
 const { width } = Dimensions.get('window');
 
-export default function LessonDetailsScreen() {
+export default function AISummaryScreen() {
   const { title, content, image } = useLocalSearchParams();
   const colorScheme = useColorScheme();
   const { language } = useAppContext();
@@ -79,8 +78,8 @@ export default function LessonDetailsScreen() {
           )}
         </View>
       )}
-      <Text style={[styles.title, colorScheme === 'dark' && { color: '#fefefe' }]}>
-        {title}
+      <Text style={[styles.title, colorScheme === 'dark' && { color: '#fefefe' }]}> 
+        Ai Summary
       </Text>
       {loading ? (
         <View style={{ padding: 24, alignItems: 'center' }}>
@@ -167,8 +166,6 @@ const styles = StyleSheet.create({
     color: '#2a2a3a',
     letterSpacing: 0.3,
   },
-
-  // 🎨 Blue Section (📘 Intro)
   blueBox: {
     borderLeftWidth: 4,
     borderLeftColor: '#3498db',
@@ -196,8 +193,6 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-
-  // 🎨 Green Section (📚 Lesson)
   greenBox: {
     borderLeftWidth: 4,
     borderLeftColor: '#27ae60',
@@ -225,8 +220,6 @@ const styles = StyleSheet.create({
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 2,
   },
-
-  // 🎨 Purple Section (✅ Takeaways)
   purpleBox: {
     borderLeftWidth: 4,
     borderLeftColor: '#8e44ad',

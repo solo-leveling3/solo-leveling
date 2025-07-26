@@ -31,6 +31,7 @@ const extractYouTubeID = (url: string): string | null => {
   return match ? match[1] : null;
 };
 
+
 function formatDate(timestamp: any) {
   if (!timestamp) return '';
   const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -42,6 +43,7 @@ function formatDate(timestamp: any) {
     minute: '2-digit',
   });
 }
+
 
 interface NewsCardProps {
   title: string;
@@ -89,7 +91,7 @@ export default function NewsCard({
   const [translatedHeadings, setTranslatedHeadings] = useState({
     summary: 'Summary',
     why: 'Why it Matters',
-    takeaways: 'Key Takeaways',
+    takeaways: 'Key Learnings',
   });
   const [translatedUpskill, setTranslatedUpskill] = useState<string | string[]>(upskill);
 
@@ -101,7 +103,7 @@ useEffect(() => {
       setTranslatedHeadings({
         summary: 'Summary',
         why: 'Why it Matters',
-        takeaways: 'Key Takeaways',
+        takeaways: 'Key points to learn',
       });
       setTranslatedUpskill(upskill);
     } else {
@@ -109,7 +111,7 @@ useEffect(() => {
         const [summary, why, takeaways] = await Promise.all([
           translateText('Summary', language),
           translateText('Why it Matters', language),
-          translateText('Key Takeaways', language),
+          translateText('Key points to learn', language),
         ]);
 
         const bulletPoints = upskill.split(/\n|•|\.|-/).filter(Boolean);
@@ -160,7 +162,7 @@ useEffect(() => {
         border: '#e0e7ff',
         text: '#222b45',
         heading: '#1c1c40', // dark for light mode
-        gradient: ['#4c68ff', '#a084ee'] as [string, string],
+        gradient: ['#000000ff', '#c9ca5db8'] as [string, string],
         icon: '#4c68ff',
         readMore: '#4c68ff',
         title: '#e6ed13',
@@ -276,26 +278,30 @@ useEffect(() => {
             </View>
           </LinearGradient>
         </View>
-        {youtube?.url && (
-          <Pressable
-            style={styles.youtubeRow}
-            onPress={() => Linking.openURL(youtube.url)}
-            accessibilityRole="button"
-            accessibilityLabel={youtube.title ? `Watch YouTube video: ${youtube.title}` : 'Watch YouTube video'}
-          >
-            <View style={styles.thumbnailButton}>
-              <View style={styles.youtubeLogo}>
-                <View style={styles.youtubePlayButton}>
-                  <View style={styles.playTriangle} />
+        {title && (
+            <Pressable
+              style={styles.youtubeRow}
+              onPress={() => {
+                const searchUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(title)}`;
+                Linking.openURL(searchUrl);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`Search YouTube for ${title}`}
+            >
+              <View style={styles.thumbnailButton}>
+                <View style={styles.youtubeLogo}>
+                  <View style={styles.youtubePlayButton}>
+                    <View style={styles.playTriangle} />
+                  </View>
                 </View>
               </View>
-            </View>
-            <View style={styles.watchTextWrapper}>
-              <Text style={styles.watchText}>Watch AI Recommended Video</Text>
-              <Text style={styles.youtubeSubtext}>on YouTube</Text>
-            </View>
-          </Pressable>
-        )}
+              <View style={styles.watchTextWrapper}>
+                <Text style={styles.watchText}>Watch Related Insights</Text>
+                <Text style={styles.youtubeSubtext}>on YouTube</Text>
+              </View>
+            </Pressable>
+          )}
+
         <View style={styles.actionRow}>
           <Animated.View style={[styles.animatedWrapper, animatedStyle]}>
             <Pressable
@@ -304,7 +310,7 @@ useEffect(() => {
               onPressOut={() => (scale.value = withSpring(1))}
               onPress={() =>
                 router.push({
-                  pathname: '/lesson-details',
+                  pathname: '/AI-summary',
                   params: {
                     id: title,
                     content: lessonContent ?? '',
@@ -335,13 +341,11 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderRadius: 20,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOpacity: 0.13,
-    shadowRadius: 18,
+    boxShadow: '0px 18px 13px rgba(0, 0, 0, 0.13)',
     elevation: 10,
     width: width,
     height: screenHeight - 80,
-    marginTop: 16, // reduced from 28
+    marginTop: 10, // reduced from 28
     alignSelf: 'center',
     borderWidth: 0.5,
     borderColor: '#e0e7ff',
