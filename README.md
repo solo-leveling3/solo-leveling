@@ -247,7 +247,7 @@ UNSPLASH_ACCESS_KEY=your_unsplash_key
 
 <div align="center">
 
-**▶️ [Watch TechNx Demo on YouTube](https://youtu.be/xqdXSA8hNI4?si=PzMMjLlc1HGHMjo1)**
+**▶️ [Watch TechNx Demo on YouTube](https://youtube.com/shorts/gjf4P7Ig3Lc?si=ztPnlrBCH-GW5JuX)**
 
 *Click the above the link to see TechNx in action!*
 
