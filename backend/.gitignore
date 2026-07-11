@@ -1,0 +1,17 @@
+# Dependencies
+node_modules/
+
+# Environment
+.env
+.env.local
+
+# Firebase credentials (NEVER commit these)
+config/firebase-credentials.json
+config/serviceAccountKey.json
+
+# Logs
+*.log
+npm-debug.log*
+
+# Misc
+.DS_Store
